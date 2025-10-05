@@ -129,6 +129,9 @@ const validInvokeChannels = [
   "mcp:list-tools",
   "mcp:get-tool-consents",
   "mcp:set-tool-consent",
+  // Auto update actions
+  "update:check-now",
+  "update:quit-and-install",
   // MCP consent response from renderer to main
   "mcp:tool-consent-response",
   // Help bot
@@ -156,12 +159,16 @@ const validReceiveChannels = [
   "github:flow-success",
   "github:flow-error",
   "deep-link-received",
+  // Navigation events triggered from main (e.g., tray menu)
+  "navigate",
   // Help bot
   "help:chat:response:chunk",
   "help:chat:response:end",
   "help:chat:response:error",
   // MCP consent request from main to renderer
   "mcp:tool-consent-request",
+  // Auto update status from main
+  "update-status",
 ] as const;
 
 type ValidInvokeChannel = (typeof validInvokeChannels)[number];

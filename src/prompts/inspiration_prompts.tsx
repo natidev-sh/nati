@@ -305,4 +305,133 @@ export const INSPIRATION_PROMPTS = [
     ),
     label: "Virtual Avatar Builder",
   },
+  {
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 11c1.657 0 3-1.567 3-3.5S13.657 4 12 4s-3 1.567-3 3.5S10.343 11 12 11z"/>
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 20a6 6 0 1112 0H6z"/>
+      </svg>
+    ),
+    label: "AI Resume Reviewer",
+  },
+  {
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7h18M3 12h18M3 17h18"/>
+      </svg>
+    ),
+    label: "Kanban Board (Drag & Drop)",
+  },
+  {
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v10m4-6v6m4-10v10"/>
+      </svg>
+    ),
+    label: "Link Shortener + Analytics",
+  },
+  {
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v18m9-9H3"/>
+      </svg>
+    ),
+    label: "Expense Splitter (Friends)",
+  },
+  {
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6l4 2"/>
+        <circle cx="12" cy="12" r="9" strokeWidth={2} />
+      </svg>
+    ),
+    label: "Real‑time Chat (WebSocket)",
+  },
+  {
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h8M6 11h12M4 15h16M6 19h12"/>
+      </svg>
+    ),
+    label: "Blog CMS (Markdown)",
+  },
+  {
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16v12H4z"/>
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h8M8 14h5"/>
+      </svg>
+    ),
+    label: "PDF Chatbot (Upload & Ask)",
+  },
+  {
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h8v10H8z"/>
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v4m0 10v4"/>
+      </svg>
+    ),
+    label: "Calendar + Tasks (Sync)",
+  },
+  {
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 7h14l-2 10H7L5 7z"/>
+        <circle cx="9" cy="19" r="1.5"/>
+        <circle cx="15" cy="19" r="1.5"/>
+      </svg>
+    ),
+    label: "Inventory Tracker (CRUD)",
+  },
+  {
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c1.657 0 3-1.567 3-3.5S13.657 1 12 1 9 2.567 9 4.5 10.343 8 12 8z"/>
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 22v-2a6 6 0 0112 0v2H4z"/>
+      </svg>
+    ),
+    label: "Personal CRM (Contacts)",
+  },
+  {
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12h18M12 3v18"/>
+      </svg>
+    ),
+    label: "Flashcards (Spaced Repetition)",
+  },
+  {
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16v6H4z"/>
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 18h10"/>
+      </svg>
+    ),
+    label: "API Status Page",
+  },
+  {
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4"/>
+        <circle cx="12" cy="12" r="9"/>
+      </svg>
+    ),
+    label: "Job Application Tracker",
+  },
+  {
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7h18M3 12h12M3 17h8"/>
+      </svg>
+    ),
+    label: "Notes App (Full‑text Search)",
+  },
+  {
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 12h10M4 16h7"/>
+      </svg>
+    ),
+    label: "Docs → Blog (Static Export)",
+  },
 ];

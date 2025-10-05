@@ -32,7 +32,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import type { FileAttachment } from "@/ipc/ipc_types";
 import { NEON_TEMPLATE_IDS } from "@/shared/templates";
 import { neonTemplateHook } from "@/client_logic/template_hook";
-import { ProBanner } from "@/components/ProBanner";
+import { ChevronRight } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
 
 // Adding an export for attachments
 export interface HomeSubmitOptions {
@@ -114,6 +115,50 @@ export default function HomePage() {
   const [randomPrompts, setRandomPrompts] = useState<
     typeof INSPIRATION_PROMPTS
   >([]);
+
+  // Framework badges detection for recent apps
+  const [frameworkBadges, setFrameworkBadges] = useState<Record<number, string[]>>({});
+  const detectFrameworks = useCallback((pkgJson: any): string[] => {
+    const deps = {
+      ...pkgJson?.dependencies,
+      ...pkgJson?.devDependencies,
+    } as Record<string, string> | undefined;
+    if (!deps) return [];
+    const badges: string[] = [];
+    if (deps["next"]) badges.push("Next.js");
+    if (deps["react"] && !badges.includes("Next.js")) badges.push("React");
+    if (deps["astro"]) badges.push("Astro");
+    if (deps["@sveltejs/kit"]) badges.push("SvelteKit");
+    if (deps["remix"]) badges.push("Remix");
+    if (deps["vite"]) badges.push("Vite");
+    if (deps["express"]) badges.push("Express");
+    return badges;
+  }, []);
+
+  // Load frameworks for the top 6 recent apps
+  useEffect(() => {
+    if (!apps || apps.length === 0) return;
+    const sorted = [...apps].sort((a: any, b: any) => {
+      const aTime = new Date(a.updatedAt || a.createdAt || 0).getTime();
+      const bTime = new Date(b.updatedAt || b.createdAt || 0).getTime();
+      return bTime - aTime;
+    });
+    const top = sorted.slice(0, 6);
+    (async () => {
+      const entries = await Promise.all(
+        top.map(async (app: any) => {
+          try {
+            const pkgStr = await IpcClient.getInstance().readAppFile(app.id, "package.json");
+            const pkg = JSON.parse(pkgStr);
+            return [app.id, detectFrameworks(pkg)] as [number, string[]];
+          } catch {
+            return [app.id, []] as [number, string[]];
+          }
+        }),
+      );
+      setFrameworkBadges((prev) => ({ ...prev, ...Object.fromEntries(entries) }));
+    })();
+  }, [apps, detectFrameworks]);
 
   // Function to get random prompts
   const getRandomPrompts = useCallback(() => {
@@ -237,8 +282,6 @@ export default function HomePage() {
       <SetupBanner />
 
       <div className="w-full">
-        <ImportAppButton />
-        
         <HomeChatInput onSubmit={handleSubmit} />
 
         <div className="flex flex-col gap-4 mt-2">
@@ -283,7 +326,74 @@ export default function HomePage() {
             </span>
           </button>
         </div>
-        <ProBanner />
+        {/* Recent Apps Section */}
+        {apps && apps.length > 0 && (
+          <div className="mt-6">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-base font-semibold glass-contrast-text">Recent apps</h3>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {apps
+                .slice()
+                .sort((a: any, b: any) => {
+                  const aTime = new Date(a.updatedAt || a.createdAt || 0).getTime();
+                  const bTime = new Date(b.updatedAt || b.createdAt || 0).getTime();
+                  return bTime - aTime;
+                })
+                .slice(0, 6)
+                .map((app: any) => (
+                  <button
+                    key={app.id}
+                    type="button"
+                    onClick={() => navigate({ to: "/app-details", search: { appId: app.id } })}
+                    className="group w-full text-left rounded-xl p-4 glass-surface glass-hover ring-1 ring-white/40 dark:ring-white/10 transition-all hover:-translate-y-[1px]"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="truncate font-medium glass-contrast-text">{app.name || `App #${app.id}`}</div>
+                        <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                          {frameworkBadges[app.id]?.map((fw) => (
+                            <span key={fw} className="px-2 py-0.5 rounded-full text-[10px] bg-indigo-500/10 text-indigo-600 dark:text-indigo-300">
+                              {fw}
+                            </span>
+                          ))}
+                          {app.githubRepo && (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] bg-black/5 dark:bg-white/10 text-gray-700 dark:text-gray-300">GitHub</span>
+                          )}
+                          {app.vercelProjectName && (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">Vercel</span>
+                          )}
+                          {app.supabaseProjectName && (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-700/10 text-emerald-700 dark:text-emerald-300">Supabase</span>
+                          )}
+                          {app.neonProjectId && (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] bg-cyan-500/10 text-cyan-600 dark:text-cyan-300">Neon</span>
+                          )}
+                        </div>
+                        <div className="text-[11px] text-gray-600 dark:text-gray-400 mt-1 truncate">
+                          Updated {formatDistanceToNow(new Date(app.updatedAt || app.createdAt), { addSuffix: true })}
+                        </div>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors" />
+                    </div>
+                  </button>
+                ))}
+            </div>
+          </div>
+        )}
+
+        {/* Empty state when no apps */}
+        {(!apps || apps.length === 0) && (
+          <div className="mt-6">
+            <div className="w-full rounded-xl p-6 glass-surface ring-1 ring-white/40 dark:ring-white/10 text-center">
+              <div className="text-lg font-semibold glass-contrast-text">No apps yet</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">Start by describing your app idea above or import an existing project.</div>
+              <div className="mt-3 flex items-center justify-center gap-2">
+                <ImportAppButton />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
       <PrivacyBanner />
 

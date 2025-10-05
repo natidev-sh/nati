@@ -110,6 +110,25 @@ function App() {
     };
   }, []);
 
+  // Listen for navigation requests from main process (e.g., tray menu)
+  useEffect(() => {
+    const handler = (payload: any) => {
+      const to = payload?.to as string | undefined;
+      const search = payload?.search as Record<string, any> | undefined;
+      if (to) {
+        router.navigate({ to, search });
+      }
+    };
+    // @ts-ignore
+    const off = (window as any).electron?.ipcRenderer?.on("navigate", handler);
+    return () => {
+      if (typeof off === "function") off();
+      else
+        // @ts-ignore - fallback
+        (window as any).electron?.ipcRenderer?.removeAllListeners?.("navigate");
+    };
+  }, []);
+
   useEffect(() => {
     const ipc = IpcClient.getInstance();
     const unsubscribe = ipc.onMcpToolConsentRequest((payload) => {

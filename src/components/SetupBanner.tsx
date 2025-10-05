@@ -9,13 +9,17 @@ import {
   Loader2,
   Settings,
   GlobeIcon,
+  Star,
+  Github,
 } from "lucide-react";
 import { providerSettingsRoute } from "@/routes/settings/providers/$provider";
 
 import SetupProviderCard from "@/components/SetupProviderCard";
+import { UpdateBanner } from "@/components/UpdateBanner";
 
 import { useState, useEffect, useCallback } from "react";
 import { IpcClient } from "@/ipc/ipc_client";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Accordion,
   AccordionContent,
@@ -87,7 +91,7 @@ export function SetupBanner() {
   const handleDyadProSetupClick = () => {
     posthog.capture("setup-flow:ai-provider-setup:dyad:click");
     IpcClient.getInstance().openExternalUrl(
-      "https://www.dyad.sh/pro?utm_source=dyad-app&utm_medium=app&utm_campaign=setup-banner",
+      "https://www.natidev.com/pro?utm_source=dyad-app&utm_medium=app&utm_campaign=setup-banner",
     );
   };
 
@@ -123,9 +127,55 @@ export function SetupBanner() {
 
   if (itemsNeedAction.length === 0) {
     return (
-      <h1 className="select-none text-center text-5xl font-bold mb-8 bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600 dark:from-gray-100 dark:to-gray-400 tracking-tight">
-        Build your dream app
-      </h1>
+      <div className="flex flex-col items-center">
+        <UpdateBanner />
+        {/* GitHub Star CTA */}
+        <button
+          type="button"
+          onClick={() =>
+            IpcClient.getInstance().openExternalUrl(
+              "https://github.com/natidev-sh/nati",
+            )
+          }
+          className={cn(
+            "group relative inline-flex items-center gap-2 rounded-full px-4 py-2",
+            "text-sm font-medium",
+            "bg-white/70 dark:bg-zinc-900/70 backdrop-blur border",
+            "border-zinc-200 dark:border-zinc-700",
+            "shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_6px_20px_rgba(0,0,0,0.08)]",
+            "hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_12px_36px_rgba(237,50,121,0.22)]",
+            "transition-all duration-300",
+            "cursor-pointer"
+          )}
+        >
+          {/* subtle gradient ring on hover */}
+          <span className="pointer-events-none absolute -inset-px rounded-full bg-[linear-gradient(120deg,rgba(237,50,121,0.18),rgba(100,108,255,0.18))] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          <span className="relative flex items-center gap-2">
+            <span className="flex items-center justify-center h-6 w-6 rounded-full bg-gradient-to-br from-[#ed3279] to-[#6a4cff] text-white shadow-sm">
+              <Star className="h-3.5 w-3.5" />
+            </span>
+            <span className="glass-contrast-text">Star it on GitHub</span>
+            <Github className="h-4 w-4 text-zinc-500 group-hover:text-zinc-700 dark:group-hover:text-zinc-300 transition-colors" />
+          </span>
+        </button>
+
+        <h1 className="select-none text-center text-5xl font-bold mb-5 bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600 dark:from-gray-100 dark:to-gray-400 tracking-tight">
+          Build your app with
+          {" "}
+          <span className="relative inline-block align-middle">
+            {/* Gradient text */}
+            <span className="relative z-10 bg-gradient-to-r from-[#ed3279] via-fuchsia-500 to-[#6a4cff] bg-clip-text text-transparent [text-shadow:0_0_18px_rgba(237,50,121,0.35)]">
+              Nati
+            </span>
+            {/* Glossy highlight line under text */}
+            <span
+              aria-hidden
+              className="pointer-events-none absolute inset-x-0 -bottom-1 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent opacity-80"
+            />
+            </span>
+        </h1>
+        
+      </div>
     );
   }
 
@@ -147,6 +197,38 @@ export function SetupBanner() {
 
   return (
     <>
+      <UpdateBanner />
+      {/* Always-visible small CTA */}
+      <div className="flex justify-center mt-1">
+        <button
+          type="button"
+          onClick={() =>
+            IpcClient.getInstance().openExternalUrl(
+              "https://github.com/natidev-sh/nati",
+            )
+          }
+          className={cn(
+            "group relative inline-flex items-center gap-2 rounded-full px-3 py-1.5",
+            "text-xs font-medium",
+            "bg-white/70 dark:bg-zinc-900/70 backdrop-blur border",
+            "border-zinc-200 dark:border-zinc-700",
+            "shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_4px_14px_rgba(0,0,0,0.08)]",
+            "hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_10px_28px_rgba(237,50,121,0.20)]",
+            "transition-all duration-300 mb-2",
+          )}
+          aria-label="Star nati on GitHub"
+        >
+          <span className="pointer-events-none absolute -inset-px rounded-full bg-[linear-gradient(120deg,rgba(237,50,121,0.14),rgba(100,108,255,0.14))] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          <span className="relative flex items-center gap-2">
+            <span className="flex items-center justify-center h-5 w-5 rounded-full bg-gradient-to-br from-[#ed3279] to-[#6a4cff] text-white shadow-sm">
+              <Star className="h-3 w-3" />
+            </span>
+            <span className="glass-contrast-text">Star it on GitHub</span>
+            <Github className="h-3.5 w-3.5 text-zinc-500 group-hover:text-zinc-700 dark:group-hover:text-zinc-300 transition-colors" />
+          </span>
+        </button>
+      </div>
+
       <p className="text-xl text-zinc-700 dark:text-zinc-300 p-4">Setup Nati</p>
       <div className={bannerClasses}>
         <Accordion
@@ -280,22 +362,37 @@ export function SetupBanner() {
                 }
               />
 
-              <SetupProviderCard
-                className="mt-2"
-                variant="dyad"
-                onClick={handleDyadProSetupClick}
-                tabIndex={isNodeSetupComplete ? 0 : -1}
-                leadingIcon={
-                  <img src={logo} alt="nati Logo" className="w-6 h-6 mr-0.5" />
-                }
-                title="Setup nati Pro"
-                subtitle={
-                  <>
-                    <GlobeIcon className="w-3 h-3" />
-                    Access all AI models with one plan
-                  </>
-                }
-              />
+              <div className="relative mt-2">
+                {/* SOON badge */}
+                <span
+                  className="absolute -top-2 -right-2 z-10 select-none rounded-full px-2.5 py-1 text-[10px] font-semibold tracking-wide shadow-sm bg-gradient-to-r from-[#ed3279] to-[#6a4cff] text-white ring-1 ring-white/40 dark:ring-white/10 animate-[pulse_2.2s_ease-in-out_infinite]"
+                >
+                  SOON
+                </span>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="cursor-not-allowed">
+                      <SetupProviderCard
+                        className="opacity-60 saturate-75"
+                        variant="dyad"
+                        onClick={() => {}}
+                        tabIndex={-1}
+                        leadingIcon={
+                          <img src={logo} alt="nati Logo" className="w-6 h-6 mr-0.5" />
+                        }
+                        title="nati Pro (coming soon)"
+                        subtitle={
+                          <>
+                            <GlobeIcon className="w-3 h-3" />
+                            Access all AI models with one plan
+                          </>
+                        }
+                      />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent sideOffset={8}>Pro is launching soon</TooltipContent>
+                </Tooltip>
+              </div>
 
               <div
                 className="mt-2 p-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800/70 transition-colors"
@@ -336,7 +433,7 @@ function NodeJsHelpCallout() {
         <a
           onClick={() => {
             IpcClient.getInstance().openExternalUrl(
-              "https://www.dyad.sh/docs/help/nodejs",
+              "https://www.natidev.com/docs/help/nodejs",
             );
           }}
           className="text-blue-600 dark:text-blue-400 hover:underline font-medium"

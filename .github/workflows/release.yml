@@ -7,22 +7,22 @@ permissions:
 
 name: Release app
 on:
+  push:
+    tags:
+      - 'v*'
   workflow_dispatch:
 jobs:
   build:
     environment: release
     strategy:
-      # Uncomment max-parallel to prevent race condition (where multiple releases are
-      # created concurrently). Typically though, we'll create a release manually ahead of time
-      # which prevents the race.
-      # max-parallel: 1
+      # Serialize to avoid concurrent release creation across matrix jobs
+      max-parallel: 1
       matrix:
         os: [
             { name: "windows", image: "windows-latest" },
-            # See https://github.com/dyad-sh/dyad/issues/96
-            { name: "linux", image: "ubuntu-22.04" },
-            { name: "macos-intel", image: "macos-13" },
-            { name: "macos", image: "macos-latest" },
+            # { name: "linux", image: "ubuntu-22.04" },
+            # { name: "macos-intel", image: "macos-13" },
+            # { name: "macos", image: "macos-latest" },
           ]
     runs-on: ${{ matrix.os.image }}
     steps:

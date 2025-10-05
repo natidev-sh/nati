@@ -159,7 +159,7 @@ export function TokenBar({ chatId }: TokenBarProps) {
             onClick={() =>
               settings?.enableDyadPro
                 ? IpcClient.getInstance().openExternalUrl(
-                    "https://www.dyad.sh/docs/guides/ai-models/pro-modes#smart-context",
+                    "https://www.natidev.com/docs/guides/ai-models/pro-modes#smart-context",
                   )
                 : IpcClient.getInstance().openExternalUrl(
                     "https://natidev.com/pro#ai",

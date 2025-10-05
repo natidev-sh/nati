@@ -1,3 +1,4 @@
+import "dotenv/config";
 import type { ForgeConfig } from "@electron-forge/shared-types";
 import { MakerSquirrel } from "@electron-forge/maker-squirrel";
 import { MakerZIP } from "@electron-forge/maker-zip";
@@ -58,7 +59,8 @@ const config: ForgeConfig = {
         schemes: ["dyad"],
       },
     ],
-    icon: "./assets/icon/logo",
+    // Windows: provide base path without extension; ensure ./assets/win/app.ico exists
+    icon: "./assets/win/app",
 
     osxSign: isEndToEndTestBuild
       ? undefined
@@ -73,6 +75,11 @@ const config: ForgeConfig = {
           teamId: process.env.APPLE_TEAM_ID!,
         },
     asar: true,
+    // Ensure tray icons are available at runtime in packaged app
+    extraResource: [
+      "./assets/win/app.ico",
+      "./assets/icon/logo.png",
+    ],
     ignore,
     // ignore: [/node_modules\/(?!(better-sqlite3|bindings|file-uri-to-path)\/)/],
   },
@@ -82,6 +89,8 @@ const config: ForgeConfig = {
   },
   makers: [
     new MakerSquirrel({
+      // Icon for the Setup.exe itself
+      setupIcon: "./assets/win/installer.ico",
       // signWithParams: `/sha1 ${process.env.SM_CODE_SIGNING_CERT_SHA1_HASH} /tr http://timestamp.digicert.com /td SHA256 /fd SHA256`,
     }),
     new MakerZIP({}, ["darwin"]),
@@ -97,8 +106,8 @@ const config: ForgeConfig = {
       name: "@electron-forge/publisher-github",
       config: {
         repository: {
-          owner: "dyad-sh",
-          name: "dyad",
+          owner: "natidev-sh",
+          name: "nati",
         },
         draft: true,
         force: true,

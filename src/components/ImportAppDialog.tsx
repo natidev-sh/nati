@@ -182,7 +182,7 @@ export function ImportAppDialog({ isOpen, onClose }: ImportAppDialogProps) {
             <Button
               onClick={handleSelectFolder}
               disabled={selectFolderMutation.isPending}
-              className="w-full glass-button glass-hover glass-active hover:text-white active:text-white"
+              className="w-full glass-button glass-hover glass-active hover:text-white active:text-white cursor-pointer"
             >
               {selectFolderMutation.isPending ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

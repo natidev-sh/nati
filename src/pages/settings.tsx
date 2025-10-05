@@ -393,6 +393,37 @@ export default function SettingsPage() {
 
 export function GeneralSettings({ appVersion }: { appVersion: string | null }) {
   const { theme, setTheme } = useTheme();
+  const [checkingUpdate, setCheckingUpdate] = useState(false);
+  const [updateReady, setUpdateReady] = useState<string | null>(null);
+  const [updateStatus, setUpdateStatus] = useState<string | null>(null);
+
+  useEffect(() => {
+    const w = window as any;
+    if (!w?.electron?.ipcRenderer) return;
+    const off = w.electron.ipcRenderer.on("update-status", (...args: unknown[]) => {
+      const evt = (args?.[0] || {}) as { type: string; version?: string };
+      if (evt?.type === "checking") {
+        setUpdateStatus("Checking for updates...");
+      } else if (evt?.type === "not-available") {
+        setUpdateStatus("You're up to date");
+      } else if (evt?.type === "available") {
+        setUpdateStatus(`Downloading update${evt.version ? ` (${evt.version})` : ""}...`);
+      } else if (evt?.type === "download-progress") {
+        // keep banner for detailed progress; show lightweight text here
+        setUpdateStatus("Downloading update...");
+      } else if (evt?.type === "downloaded") {
+        setUpdateReady(evt.version ?? "");
+        setUpdateStatus("Update ready to install");
+      } else if (evt?.type === "error") {
+        setUpdateStatus("Update error. Try again later.");
+        setCheckingUpdate(false);
+      }
+    });
+    return () => {
+      try { off?.(); } catch {}
+      try { w?.electron?.ipcRenderer?.removeAllListeners("update-status"); } catch {}
+    };
+  }, []);
 
   return (
     <div
@@ -454,9 +485,10 @@ export function GeneralSettings({ appVersion }: { appVersion: string | null }) {
         </div>
       </div>
 
-      <div className="mt-6">
+      {/* Release channel selection temporarily disabled */}
+      {/* <div className="mt-6">
         <ReleaseChannelSelector />
-      </div>
+      </div> */}
 
       <div className="mt-6">
         <RuntimeModeSelector />
@@ -467,7 +499,46 @@ export function GeneralSettings({ appVersion }: { appVersion: string | null }) {
         <span className="bg-gray-100/80 dark:bg-gray-700/70 px-2 py-0.5 rounded text-gray-800 dark:text-gray-200 font-mono border border-gray-200/60 dark:border-white/10">
           {appVersion ? appVersion : "-"}
         </span>
+        {updateStatus === "You're up to date" && (
+          <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-100 text-emerald-800 border border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800">
+            You’re up to date
+          </span>
+        )}
+        <div className="ml-3 flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={checkingUpdate}
+            onClick={async () => {
+              const w = window as any;
+              if (!w?.electron?.ipcRenderer) return;
+              setCheckingUpdate(true);
+              try {
+                await w.electron.ipcRenderer.invoke("update:check-now");
+                setUpdateStatus("Checking for updates...");
+              } finally {
+                setCheckingUpdate(false);
+              }
+            }}
+          >
+            {checkingUpdate ? "Checking..." : "Check for updates"}
+          </Button>
+          {updateReady && (
+            <Button
+              size="sm"
+              onClick={async () => {
+                const w = window as any;
+                await w?.electron?.ipcRenderer?.invoke("update:quit-and-install");
+              }}
+            >
+              Restart to update
+            </Button>
+          )}
+        </div>
       </div>
+      {updateStatus && (
+        <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">{updateStatus}</div>
+      )}
     </div>
   );
 }

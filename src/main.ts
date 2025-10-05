@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog } from "electron";
+import { app, BrowserWindow, dialog, Menu, Tray, nativeImage, shell, ipcMain } from "electron";
 import * as path from "node:path";
 import { registerIpcHandlers } from "./ipc/ipc_host";
 import dotenv from "dotenv";
@@ -63,21 +63,108 @@ export async function onReady() {
   createWindow();
 
   logger.info("Auto-update enabled=", settings.enableAutoUpdate);
-  if (settings.enableAutoUpdate) {
+  // Only enable auto-update in packaged builds
+  if (settings.enableAutoUpdate && app.isPackaged) {
     // Technically we could just pass the releaseChannel directly to the host,
     // but this is more explicit and falls back to stable if there's an unknown
     // release channel.
     const postfix = settings.releaseChannel === "beta" ? "beta" : "stable";
-    const host = `https://api.dyad.sh/v1/update/${postfix}`;
     logger.info("Auto-update release channel=", postfix);
     updateElectronApp({
       logger,
       updateSource: {
         type: UpdateSourceType.ElectronPublicUpdateService,
-        repo: "dyad-sh/dyad",
-        host,
+        repo: "natidev-sh/nati",
       },
     }); // additional configuration options available
+
+    // Hook into autoUpdater events and forward to renderer
+    // Prefer electron-updater if available, otherwise fall back to Electron's autoUpdater
+    let updater: any;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      updater = require("electron-updater").autoUpdater; // optional dep
+    } catch {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      updater = require("electron").autoUpdater;
+    }
+
+    const send = (payload: any) => mainWindow?.webContents.send("update-status", payload);
+
+    try {
+      // Some updaters emit this when a check begins
+      updater.on?.("checking-for-update", () => {
+        isUpdateCheckInFlight = true;
+        lastUpdateCheckAt = Date.now();
+        send({ type: "checking" });
+      });
+      updater.on("update-available", (info: any) => {
+        logger.info("update-available", info?.version || "");
+        send({ type: "available", version: info?.version });
+      });
+      updater.on?.("update-not-available", () => {
+        isUpdateCheckInFlight = false;
+        send({ type: "not-available" });
+      });
+      updater.on("download-progress", (p: any) => {
+        send({ type: "download-progress", percent: p?.percent ?? 0, bytesPerSecond: p?.bytesPerSecond ?? 0 });
+      });
+      updater.on("update-downloaded", (info: any) => {
+        logger.info("update-downloaded", info?.version || "");
+        send({ type: "downloaded", version: info?.version });
+        isUpdateCheckInFlight = false;
+      });
+      updater.on("error", (err: any) => {
+        logger.warn("autoUpdater error", err?.message || err);
+        send({ type: "error", message: String(err?.message || err) });
+        isUpdateCheckInFlight = false;
+      });
+
+      // Expose manual actions
+      ipcMain.handle("update:check-now", async () => {
+        try {
+          const now = Date.now();
+          // Debounce manual checks to avoid Squirrel lock conflicts
+          if (isUpdateCheckInFlight) {
+            return { ok: false, busy: true, reason: "in_flight" };
+          }
+          if (lastUpdateCheckAt && now - lastUpdateCheckAt < 30_000) {
+            return { ok: false, busy: true, reason: "cooldown" };
+          }
+          isUpdateCheckInFlight = true;
+          lastUpdateCheckAt = now;
+          // For electron-updater this triggers flow; for built-in, same
+          await updater.checkForUpdates();
+          return { ok: true };
+        } catch (e: any) {
+          logger.warn("checkForUpdates failed", e);
+          isUpdateCheckInFlight = false;
+          return { ok: false, error: String(e?.message || e) };
+        }
+      });
+      ipcMain.handle("update:quit-and-install", async () => {
+        try {
+          // Prevent close handler from hiding to tray
+          isQuittingForUpdate = true;
+          // Destroy tray so app can quit cleanly
+          try { tray?.destroy(); } catch {}
+          tray = null;
+          // electron-updater supports immediate install; fallback to relaunch
+          if (typeof updater.quitAndInstall === "function") {
+            updater.quitAndInstall();
+          } else {
+            app.relaunch();
+            app.exit(0);
+          }
+          return { ok: true };
+        } catch (e: any) {
+          logger.warn("quitAndInstall failed", e);
+          return { ok: false, error: String(e?.message || e) };
+        }
+      });
+    } catch (e) {
+      logger.warn("Failed to bind autoUpdater events", e);
+    }
   }
 }
 
@@ -128,6 +215,37 @@ declare global {
 }
 
 let mainWindow: BrowserWindow | null = null;
+let tray: Tray | null = null;
+let didShowTrayTip = false;
+let isUpdateCheckInFlight = false;
+let lastUpdateCheckAt: number | null = null;
+let isQuittingForUpdate = false;
+
+function getWinIconPath() {
+  // In packaged builds, use resourcesPath + extraResource
+  const base = app.isPackaged
+    ? path.join(process.resourcesPath)
+    : path.resolve(__dirname, "..", "assets", "win");
+  // If packaged, we copied ./assets/win/app.ico via extraResource to resources root
+  return app.isPackaged ? path.join(base, "app.ico") : path.join(base, "app.ico");
+}
+
+function getGenericIconPngPath() {
+  // In packaged builds, use resourcesPath + extraResource
+  const base = app.isPackaged
+    ? path.join(process.resourcesPath)
+    : path.resolve(__dirname, "..", "assets", "icon");
+  // If packaged, we copied ./assets/icon/logo.png via extraResource to resources root
+  return app.isPackaged ? path.join(base, "logo.png") : path.join(base, "logo.png");
+}
+
+// Set app identity ASAP for Windows notifications and taskbar grouping
+if (process.platform === "win32") {
+  try {
+    app.setName("Nati");
+    app.setAppUserModelId("com.natidev.nati");
+  } catch {}
+}
 
 const createWindow = () => {
   // Create the browser window.
@@ -142,6 +260,7 @@ const createWindow = () => {
       x: 10,
       y: 8,
     },
+    icon: process.platform === "win32" ? getWinIconPath() : undefined,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -163,6 +282,22 @@ const createWindow = () => {
     // Open the DevTools.
     mainWindow.webContents.openDevTools();
   }
+
+  // Intercept close to minimize to tray on Windows
+  mainWindow.on("close", (e) => {
+    if (process.platform === "win32" && tray && !isQuittingForUpdate) {
+      e.preventDefault();
+      mainWindow?.hide();
+      if (!didShowTrayTip) {
+        tray.displayBalloon?.({
+          iconType: "info",
+          title: "Nati",
+          content: "Nati is still running in the system tray.",
+        });
+        didShowTrayTip = true;
+      }
+    }
+  });
 };
 
 const gotTheLock = app.requestSingleInstanceLock();
@@ -281,7 +416,108 @@ app.on("activate", () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
   }
+  mainWindow?.show();
 });
 
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and import them here.
+
+// Create Tray once app is ready
+app.whenReady().then(() => {
+  try {
+    // Choose appropriate tray icon per platform
+    let iconPath: string;
+    if (process.platform === "win32") {
+      iconPath = getWinIconPath();
+    } else {
+      iconPath = getGenericIconPngPath();
+    }
+
+    let image = nativeImage.createFromPath(iconPath);
+    if (!image || image.isEmpty()) {
+      // Fallback: try generic PNG if Windows icon failed for some reason
+      const fallback = getGenericIconPngPath();
+      const fallbackImage = nativeImage.createFromPath(fallback);
+      if (!fallbackImage.isEmpty()) image = fallbackImage;
+    }
+
+    // On macOS, use template image for dark/light auto inversion
+    if (process.platform === "darwin") {
+      image.setTemplateImage?.(true);
+    }
+
+    tray = new Tray(image);
+    const menu = Menu.buildFromTemplate([
+      {
+        label: "Show Nati",
+        click: () => {
+          if (!mainWindow) return;
+          mainWindow.show();
+          mainWindow.focus();
+        },
+      },
+      {
+        label: "Home",
+        click: () => {
+          if (!mainWindow) return;
+          mainWindow.show();
+          mainWindow.webContents.send("navigate", { to: "/" });
+        },
+      },
+      {
+        label: "Apps",
+        click: () => {
+          if (!mainWindow) return;
+          mainWindow.show();
+          mainWindow.webContents.send("navigate", { to: "/" });
+        },
+      },
+      {
+        label: "Settings",
+        click: () => {
+          if (!mainWindow) return;
+          mainWindow.show();
+          mainWindow.webContents.send("navigate", { to: "/settings" });
+        },
+      },
+      { type: "separator" },
+      {
+        label: "GitHub Repo",
+        click: () => shell.openExternal("https://github.com/natidev-sh/nati"),
+      },
+      {
+        label: "GitHub Issues",
+        click: () =>
+          shell.openExternal("https://github.com/natidev-sh/nati/issues"),
+      },
+      {
+        label: "Releases",
+        click: () =>
+          shell.openExternal("https://github.com/natidev-sh/nati/releases"),
+      },
+      { type: "separator" },
+      {
+        label: "Quit",
+        click: () => {
+          // Allow quitting even if we intercept close elsewhere
+          tray?.destroy();
+          tray = null;
+          app.quit();
+        },
+      },
+    ]);
+    tray.setToolTip("Nati");
+    tray.setContextMenu(menu);
+    tray.on("click", () => {
+      if (!mainWindow) return;
+      if (mainWindow.isVisible()) {
+        mainWindow.focus();
+      } else {
+        mainWindow.show();
+        mainWindow.focus();
+      }
+    });
+  } catch (err) {
+    logger.warn("Failed to create tray", err);
+  }
+});

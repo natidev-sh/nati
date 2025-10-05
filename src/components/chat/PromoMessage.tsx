@@ -153,7 +153,7 @@ export const DEBUGGING_TIPS_TIP: MessageConfig = {
   ],
 };
 
-// Advanced tip: Customize your AI rules https://www.dyad.sh/docs/guides/ai-rules
+// Advanced tip: Customize your AI rules https://www.natidev.com/docs/guides/ai-rules
 export const AI_RULES_TIP: MessageConfig = {
   spans: [
     {
@@ -163,7 +163,7 @@ export const AI_RULES_TIP: MessageConfig = {
     {
       type: "link",
       content: "AI rules",
-      url: "https://www.dyad.sh/docs/guides/ai-rules",
+      url: "https://www.natidev.com/docs/guides/ai-rules",
     },
   ],
 };
@@ -177,7 +177,7 @@ export const NEW_CHAT_TIP: MessageConfig = {
   ],
 };
 
-// Want to know what's next? Checkout our roadmap https://www.dyad.sh/docs/roadmap
+// Want to know what's next? Checkout our roadmap https://www.natidev.com/docs/roadmap
 export const ROADMAP_TIP: MessageConfig = {
   spans: [
     {
@@ -187,7 +187,7 @@ export const ROADMAP_TIP: MessageConfig = {
     {
       type: "link",
       content: "roadmap",
-      url: "https://www.dyad.sh/docs/roadmap",
+      url: "https://www.natidev.com/docs/roadmap",
     },
   ],
 };

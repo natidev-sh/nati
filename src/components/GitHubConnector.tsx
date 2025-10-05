@@ -210,7 +210,7 @@ function ConnectedGitHubConnector({
               onClick={(e) => {
                 e.preventDefault();
                 IpcClient.getInstance().openExternalUrl(
-                  "https://www.dyad.sh/docs/integrations/github#troubleshooting",
+                  "https://www.natidev.com/docs/integrations/github#troubleshooting",
                 );
               }}
               className="cursor-pointer text-blue-600 hover:underline dark:text-blue-400"
@@ -597,69 +597,89 @@ function UnconnectedGitHubConnector({
         </Button>
         {/* GitHub Connection Status/Instructions */}
         {(githubUserCode || githubStatusMessage || githubError) && (
-          <div className="mt-6 p-4 border rounded-xl glass-surface border-white/60 dark:border-white/10">
-            <h4 className="font-medium mb-2 glass-contrast-text flex items-center gap-2">
-              <Github className="h-4 w-4" /> GitHub Connection
-            </h4>
+          <div className="mt-6 p-4 rounded-2xl glass-surface border shadow-sm border-white/60 dark:border-white/10">
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-2">
+                <Github className="h-4 w-4 text-zinc-700 dark:text-zinc-300" />
+                <h4 className="m-0 text-sm font-semibold glass-contrast-text">GitHub Connection</h4>
+              </div>
+              <span className="text-[11px] px-1.5 py-0.5 rounded bg-black/5 dark:bg-white/10 text-zinc-600 dark:text-zinc-300">Device flow</span>
+            </div>
+
             {githubError && (
-              <p className="text-sm text-red-700 dark:text-red-400 mb-2">
+              <div className="mb-3 text-sm text-red-700 dark:text-red-400">
                 Error: {githubError}
-              </p>
-            )}
-            {githubUserCode && githubVerificationUri && (
-              <div className="mb-2">
-                <p className="text-sm glass-contrast-text">
-                  1. Go to:
-                  <a
-                    href={githubVerificationUri} // Make it a direct link
-                    onClick={(e) => {
-                      e.preventDefault();
-                      IpcClient.getInstance().openExternalUrl(
-                        githubVerificationUri,
-                      );
-                    }}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="ml-1 text-blue-600 hover:underline dark:text-blue-400 break-all"
-                  >
-                    {githubVerificationUri}
-                  </a>
-                </p>
-                <p className="text-sm glass-contrast-text mt-1 flex items-center flex-wrap gap-2">
-                  <span>2. Enter code:</span>
-                  <strong className="font-mono text-base tracking-wider bg-gray-200 dark:bg-gray-600 px-2 py-0.5 rounded">
-                    {githubUserCode}
-                  </strong>
-                  <button
-                    className="p-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none"
-                    onClick={() => {
-                      if (githubUserCode) {
-                        navigator.clipboard
-                          .writeText(githubUserCode)
-                          .then(() => {
-                            setCodeCopied(true);
-                            setTimeout(() => setCodeCopied(false), 2000);
-                          })
-                          .catch((err) =>
-                            console.error("Failed to copy code:", err),
-                          );
-                      }
-                    }}
-                    title="Copy to clipboard"
-                  >
-                    {codeCopied ? (
-                      <Check className="h-4 w-4 text-green-500" />
-                    ) : (
-                      <Clipboard className="h-4 w-4" />
-                    )}
-                  </button>
-                </p>
               </div>
             )}
+
+            {githubUserCode && githubVerificationUri && (
+              <div className="space-y-3">
+                {/* Step 1 */}
+                <div className="flex items-start gap-3">
+                  <span className="mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br from-[#ed3279] to-[#6a4cff] text-white text-[11px] shadow-sm">1</span>
+                  <div className="flex-1">
+                    <div className="text-sm glass-contrast-text">Open the GitHub device page</div>
+                    <div className="mt-1">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-7 px-2 rounded-lg cursor-pointer"
+                        onClick={() => IpcClient.getInstance().openExternalUrl(githubVerificationUri)}
+                      >
+                        https://github.com/login/device
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+                {/* Step 2 */}
+                <div className="flex items-start gap-3">
+                  <span className="mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br from-[#ed3279] to-[#6a4cff] text-white text-[11px] shadow-sm">2</span>
+                  <div className="flex-1">
+                    <div className="text-sm glass-contrast-text">Enter this code</div>
+                    <div className="mt-1 inline-flex items-center gap-2">
+                      <span className="font-mono tracking-wider text-base px-2.5 py-1 rounded-md bg-white/80 text-gray-900 border border-black/10 dark:bg-white/10 dark:text-white dark:border-white/15 select-none">
+                        {githubUserCode}
+                      </span>
+                      <button
+                        type="button"
+                        className="inline-flex items-center p-1.5 rounded-md hover:bg-white/70 dark:hover:bg-white/10 border border-transparent"
+                        onClick={() => {
+                          if (githubUserCode) {
+                            navigator.clipboard
+                              .writeText(githubUserCode)
+                              .then(() => {
+                                setCodeCopied(true);
+                                setTimeout(() => setCodeCopied(false), 1800);
+                              })
+                              .catch(() => {});
+                          }
+                        }}
+                        title="Copy code"
+                      >
+                        {codeCopied ? (
+                          <>
+                            <Check className="h-4 w-4 text-emerald-500" />
+                            <span className="ml-1 text-[11px] text-emerald-600 dark:text-emerald-400">Copied</span>
+                          </>
+                        ) : (
+                          <Clipboard className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {githubStatusMessage && (
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                {githubStatusMessage}
-              </p>
+              <div className="mt-3 text-sm text-zinc-700 dark:text-zinc-300 flex items-center gap-2">
+                <span className="relative inline-flex h-2 w-2">
+                  <span className="absolute inline-flex h-2 w-2 rounded-full bg-zinc-500 opacity-75 animate-ping"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-zinc-500"></span>
+                </span>
+                <span>{githubStatusMessage}</span>
+              </div>
             )}
           </div>
         )}
