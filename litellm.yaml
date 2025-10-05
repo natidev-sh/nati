@@ -1,0 +1,49 @@
+# LiteLLM Proxy Config
+# Safely references API keys from environment variables instead of hardcoding secrets.
+# Make sure your .env (or shell env) defines:
+#   OPENROUTER_API_KEY=...
+#   GOOGLE_API_KEY=...
+#   LITELLM_MASTER_KEY=...   # Admin key you choose; used ONLY to mint Virtual Keys
+
+# Optional global settings
+litellm_settings:
+  num_retries: 2
+  timeout: 120
+
+# Database required for virtual key endpoints (/key/*)
+general_settings:
+  database_url: ${DATABASE_URL}
+
+# Define models via model_list. You can add/remove models as needed.
+model_list:
+  # OpenRouter (OpenAI-compatible via OpenRouter)
+  - model_name: gpt-4o-mini
+    litellm_params:
+      # provider/model syntax
+      model: openrouter/openai/gpt-4o-mini
+      api_key: ${OPENROUTER_API_KEY}
+      api_base: https://openrouter.ai/api/v1
+
+  # Google Gemini (via Google Generative AI)
+  - model_name: gemini-1.5-pro
+    litellm_params:
+      model: gemini/gemini-1.5-pro
+      api_key: ${GOOGLE_API_KEY}
+
+# You can optionally define a default model for the /v1/chat/completions route
+# router:
+#   default_model: gpt-4o-mini
+
+# Notes:
+# - Do NOT expose LITELLM_MASTER_KEY to clients. Use it only to call /key/* admin endpoints.
+# - After starting the proxy, mint a Virtual Key using the admin (master) key, e.g.:
+#     PowerShell example:
+#       $env:LITELLM_MASTER_KEY = "<your-admin-key>"
+#       litellm --config .\litellm.yaml --port 4000
+#       $admin = $env:LITELLM_MASTER_KEY
+#       $body  = @{ metadata = @{ purpose = "dev-pro" } } | ConvertTo-Json
+#       Invoke-RestMethod -Method Post `
+#         -Uri "http://localhost:4000/key/generate" `
+#         -Headers @{ Authorization = "Bearer $admin"; "Content-Type" = "application/json" } `
+#         -Body $body
+#   The response includes a "virtual_key". Use THAT key in your app (.env NATI_PRO_API_KEY) — not the admin key.
