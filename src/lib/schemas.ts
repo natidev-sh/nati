@@ -242,6 +242,23 @@ export const UserSettingsSchema = z.object({
   // Keyboard settings
   keyboard: KeyboardSettingsSchema.optional(),
 
+  // Console preferences (theming + behavior)
+  console: z
+    .object({
+      autoScroll: z.boolean().optional(),
+      fontSize: z.number().min(8).max(24).optional(),
+      theme: z
+        .object({
+          background: z.string().optional(),
+          foreground: z.string().optional(),
+          accent: z.string().optional(),
+          tabDefault: z.string().optional(),
+          tabActive: z.string().optional(),
+        })
+        .optional(),
+    })
+    .optional(),
+
   ////////////////////////////////
   // E2E TESTING ONLY.
   ////////////////////////////////

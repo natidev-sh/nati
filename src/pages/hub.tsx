@@ -11,6 +11,8 @@ import { NeonConnector } from "@/components/NeonConnector";
 const HubPage: React.FC = () => {
   const router = useRouter();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<"templates" | "prompts" | "plugins">("templates");
+  const [scope, setScope] = useState<"all" | "mine">("all");
   const { templates, isLoading } = useTemplates();
   const { settings, updateSettings } = useSettings();
   const selectedTemplateId = settings?.selectedTemplateId;
@@ -72,53 +74,132 @@ const HubPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Tabs + Scope */}
+      <div className="max-w-7xl mx-auto px-6 md:px-8 pt-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="inline-flex rounded-lg border bg-background p-1">
+            {(["templates","prompts","plugins"] as const).map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setActiveTab(t)}
+                className={`px-3 py-1.5 text-sm rounded-md ${activeTab===t?"bg-primary text-primary-foreground":"hover:bg-gray-50 dark:hover:bg-gray-800"}`}
+              >
+                {t[0].toUpperCase()+t.slice(1)}
+              </button>
+            ))}
+          </div>
+          <div className="inline-flex rounded-lg border bg-background p-1">
+            {(["all","mine"] as const).map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setScope(s)}
+                className={`px-3 py-1.5 text-sm rounded-md ${scope===s?"bg-primary text-primary-foreground":"hover:bg-gray-50 dark:hover:bg-gray-800"}`}
+              >
+                {s[0].toUpperCase()+s.slice(1)}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {/* Body: two-column layout */}
       <div className="max-w-7xl mx-auto px-6 md:px-8 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left: Template lists */}
+        {/* Left: Main content by tab */}
         <div className="lg:col-span-8 flex flex-col gap-6">
-          <section className="p-5 md:p-6 rounded-2xl glass-surface border shadow-sm">
-            <header className="mb-4">
-              <h2 className="text-2xl font-semibold">Official templates</h2>
-              <p className="text-sm text-muted-foreground">Curated, first-party starters. {isLoading && " Loading..."}</p>
-            </header>
-            {officialTemplates.length ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                {officialTemplates.map((template) => (
-                  <TemplateCard
-                    key={template.id}
-                    template={template}
-                    isSelected={template.id === selectedTemplateId}
-                    onSelect={handleTemplateSelect}
-                    onCreateApp={handleCreateApp}
-                  />
-                ))}
-              </div>
-            ) : (
-              <EmptyState label={query ? "No official templates match your search" : "No official templates"} />
-            )}
-          </section>
+          {activeTab === "templates" && (
+            <>
+              {scope === "all" ? (
+                <>
+                  <section className="p-5 md:p-6 rounded-2xl glass-surface border shadow-sm">
+                    <header className="mb-4">
+                      <h2 className="text-2xl font-semibold">Official templates</h2>
+                      <p className="text-sm text-muted-foreground">Curated, first-party starters. {isLoading && " Loading..."}</p>
+                    </header>
+                    {officialTemplates.length ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        {officialTemplates.map((template) => (
+                          <TemplateCard
+                            key={template.id}
+                            template={template}
+                            isSelected={template.id === selectedTemplateId}
+                            onSelect={handleTemplateSelect}
+                            onCreateApp={handleCreateApp}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <EmptyState label={query ? "No official templates match your search" : "No official templates"} />
+                    )}
+                  </section>
+                  <section className="p-5 md:p-6 rounded-2xl glass-surface border shadow-sm">
+                    <header className="mb-4">
+                      <h2 className="text-2xl font-semibold">Community templates</h2>
+                      <p className="text-sm text-muted-foreground">Open-source contributions from the community.</p>
+                    </header>
+                    {communityTemplates.length ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        {communityTemplates.map((template) => (
+                          <TemplateCard
+                            key={template.id}
+                            template={template}
+                            isSelected={template.id === selectedTemplateId}
+                            onSelect={handleTemplateSelect}
+                            onCreateApp={handleCreateApp}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <EmptyState label={query ? "No community templates match your search" : "No community templates"} />
+                    )}
+                  </section>
+                </>
+              ) : (
+                <section className="p-5 md:p-6 rounded-2xl glass-surface border shadow-sm">
+                  <header className="mb-4">
+                    <h2 className="text-2xl font-semibold">My templates</h2>
+                    <p className="text-sm text-muted-foreground">Templates you’ve created or imported.</p>
+                  </header>
+                  {communityTemplates.length ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                      {communityTemplates.map((template) => (
+                        <TemplateCard
+                          key={template.id}
+                          template={template}
+                          isSelected={template.id === selectedTemplateId}
+                          onSelect={handleTemplateSelect}
+                          onCreateApp={handleCreateApp}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <EmptyState label={query ? "No templates match your search" : "No templates yet"} />
+                  )}
+                </section>
+              )}
+            </>
+          )}
 
-          <section className="p-5 md:p-6 rounded-2xl glass-surface border shadow-sm">
-            <header className="mb-4">
-              <h2 className="text-2xl font-semibold">Community templates</h2>
-              <p className="text-sm text-muted-foreground">Open-source contributions from the community.</p>
-            </header>
-            {communityTemplates.length ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                {communityTemplates.map((template) => (
-                  <TemplateCard
-                    key={template.id}
-                    template={template}
-                    isSelected={template.id === selectedTemplateId}
-                    onSelect={handleTemplateSelect}
-                    onCreateApp={handleCreateApp}
-                  />
-                ))}
-              </div>
-            ) : (
-              <EmptyState label={query ? "No community templates match your search" : "No community templates"} />
-            )}
-          </section>
+          {activeTab === "prompts" && (
+            <section className="p-5 md:p-6 rounded-2xl glass-surface border shadow-sm">
+              <header className="mb-4">
+                <h2 className="text-2xl font-semibold">{scope === "mine" ? "My prompts" : "All prompts"}</h2>
+                <p className="text-sm text-muted-foreground">Prompt marketplace (coming soon).</p>
+              </header>
+              <EmptyState label="No prompts yet" />
+            </section>
+          )}
+
+          {activeTab === "plugins" && (
+            <section className="p-5 md:p-6 rounded-2xl glass-surface border shadow-sm">
+              <header className="mb-4">
+                <h2 className="text-2xl font-semibold">{scope === "mine" ? "My plugins" : "All plugins"}</h2>
+                <p className="text-sm text-muted-foreground">Plugin marketplace (coming soon).</p>
+              </header>
+              <EmptyState label="No plugins yet" />
+            </section>
+          )}
         </div>
 
         {/* Right: Sidebar */}

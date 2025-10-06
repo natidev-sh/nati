@@ -54,9 +54,9 @@ const queryClient = new QueryClient({
 });
 
 const posthogClient = posthog.init(
-  "phc_5Vxx0XT8Ug3eWROhP6mm4D6D2DgIIKT232q4AKxC2ab",
+  "phc_3Odqvfcoy4aB6B8dOGRyR3R8VlgACedsXQbPSQ5msS",
   {
-    api_host: "https://us.i.posthog.com",
+    api_host: "https://eu.i.posthog.com",
     // @ts-ignore
     debug: import.meta.env.MODE === "development",
     autocapture: false,

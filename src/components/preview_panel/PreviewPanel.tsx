@@ -10,12 +10,13 @@ import { CodeView } from "./CodeView";
 import { PreviewIframe } from "./PreviewIframe";
 import { Problems } from "./Problems";
 import { ConfigurePanel } from "./ConfigurePanel";
-import { ChevronDown, ChevronUp, Logs } from "lucide-react";
+import { ChevronDown, ChevronUp, Logs, Plus, X, Edit3, Palette } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { PanelGroup, Panel, PanelResizeHandle } from "react-resizable-panels";
 import { Console } from "./Console";
 import { useRunApp } from "@/hooks/useRunApp";
 import { PublishPanel } from "./PublishPanel";
+import { useSettings } from "@/hooks/useSettings";
 
 interface ConsoleHeaderProps {
   isOpen: boolean;
@@ -64,6 +65,37 @@ export function PreviewPanel() {
   const runningAppIdRef = useRef<number | null>(null);
   const key = useAtomValue(previewPanelKeyAtom);
   const appOutput = useAtomValue(appOutputAtom);
+  const { settings } = useSettings();
+  const tabDefault = settings?.console?.theme?.tabDefault || "#64748b";
+  const tabActive = settings?.console?.theme?.tabActive || "#4f46e5";
+  // Console tabs (local UI state)
+  const [tabs, setTabs] = useState<{ id: string; name: string; color?: string }[]>([
+    { id: "default", name: "Terminal" },
+  ]);
+  const [activeTabId, setActiveTabId] = useState<string>("default");
+  const addTab = () => {
+    const id = `term-${Date.now()}`;
+    setTabs((t) => [...t, { id, name: `Terminal ${t.length + 1}` }]);
+    setActiveTabId(id);
+    setIsConsoleOpen(true);
+  };
+  const renameTab = (id: string) => {
+    const current = tabs.find((t) => t.id === id);
+    const next = prompt("Rename terminal", current?.name || "Terminal");
+    if (next && next.trim()) setTabs((t) => t.map((x) => (x.id === id ? { ...x, name: next.trim() } : x)));
+  };
+  const recolorTab = (id: string) => {
+    const val = prompt("Tab color (hex or css color)", tabs.find((t) => t.id === id)?.color || "#4f46e5");
+    if (val) setTabs((t) => t.map((x) => (x.id === id ? { ...x, color: val } : x)));
+  };
+  const closeTab = (id: string) => {
+    setTabs((t) => {
+      const next = t.filter((x) => x.id !== id);
+      if (!next.length) next.push({ id: "default", name: "Terminal" });
+      if (activeTabId === id) setActiveTabId(next[0].id);
+      return next;
+    });
+  };
 
   const messageCount = appOutput.length;
   const latestMessage =
@@ -142,6 +174,33 @@ export function PreviewPanel() {
                     onToggle={() => setIsConsoleOpen(false)}
                     latestMessage={latestMessage}
                   />
+                  {/* Tabs toolbar */}
+                  <div className="px-2 pt-2 border-t border-white/10">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {tabs.map((t) => (
+                        <div key={t.id} className={`group inline-flex items-center rounded-lg px-2 py-1 text-xs cursor-pointer ${activeTabId===t.id?"bg-white/20 dark:bg-white/10":"hover:bg-white/10 dark:hover:bg-white/5"}`} style={{ border: "1px solid rgba(255,255,255,0.1)" }}>
+                          <button onClick={() => setActiveTabId(t.id)} className="flex items-center gap-1">
+                            <span className="inline-block h-2 w-2 rounded-full" style={{ background: t.color || (activeTabId===t.id?tabActive:tabDefault) }} />
+                            <span className="font-medium">{t.name}</span>
+                          </button>
+                          <button className="opacity-70 hover:opacity-100 ml-1" title="Rename" onClick={() => renameTab(t.id)}>
+                            <Edit3 size={12} />
+                          </button>
+                          <button className="opacity-70 hover:opacity-100" title="Color" onClick={() => recolorTab(t.id)}>
+                            <Palette size={12} />
+                          </button>
+                          {t.id !== "default" && (
+                            <button className="opacity-70 hover:opacity-100" title="Close" onClick={() => closeTab(t.id)}>
+                              <X size={12} />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                      <button onClick={addTab} className="inline-flex items-center gap-1 text-xs rounded-lg px-2 py-1 border hover:bg-white/10 dark:hover:bg-white/5">
+                        <Plus size={12} /> New Terminal
+                      </button>
+                    </div>
+                  </div>
                   <Console />
                 </div>
               </Panel>

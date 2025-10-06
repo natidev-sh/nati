@@ -11,7 +11,7 @@ import { ThinkingBudgetSelector } from "@/components/ThinkingBudgetSelector";
 import { useSettings } from "@/hooks/useSettings";
 import { useAppVersion } from "@/hooks/useAppVersion";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Cog, Sliders, Brain, BarChart3, Plug2, Wrench, FlaskConical, ShieldAlert, Sun, Moon, Monitor, Search, ChevronUp, Keyboard } from "lucide-react";
+import { ArrowLeft, Cog, Sliders, Brain, BarChart3, Plug2, Wrench, FlaskConical, ShieldAlert, Sun, Moon, Monitor, Search, ChevronUp, Keyboard, Paintbrush } from "lucide-react";
 import { useRouter } from "@tanstack/react-router";
 import { GitHubIntegration } from "@/components/GitHubIntegration";
 import { VercelIntegration } from "@/components/VercelIntegration";
@@ -25,6 +25,7 @@ import { ReleaseChannelSelector } from "@/components/ReleaseChannelSelector";
 import { NeonIntegration } from "@/components/NeonIntegration";
 import { RuntimeModeSelector } from "@/components/RuntimeModeSelector";
 import { ToolsMcpSettings } from "@/components/settings/ToolsMcpSettings";
+import { CustomizeSettings } from "@/components/settings/CustomizeSettings";
 import { KeyboardShortcutsSettings } from "@/components/settings/KeyboardShortcutsSettings";
 
 export default function SettingsPage() {
@@ -43,6 +44,7 @@ export default function SettingsPage() {
       { id: "general-settings", label: "General" },
       { id: "workflow-settings", label: "Workflow" },
       { id: "ai-settings", label: "AI" },
+      { id: "customize", label: "Customize Terminal" },
       { id: "keyboard-settings", label: "Keyboard" },
       { id: "provider-settings", label: "Providers" },
       { id: "telemetry", label: "Telemetry" },
@@ -213,6 +215,20 @@ export default function SettingsPage() {
           <GeneralSettings appVersion={appVersion} />
           <WorkflowSettings />
           <AISettings />
+
+          {/* Customize (Console) Settings */}
+          <div
+            id="customize"
+            className="rounded-2xl glass-surface glass-hover p-6 scroll-mt-24"
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <Paintbrush className="h-5 w-5 text-pink-600 dark:text-pink-400" />
+              <h2 className="text-lg font-semibold glass-contrast-text">
+                Customize Terminal
+              </h2>
+            </div>
+            <CustomizeSettings />
+          </div>
 
           {/* Keyboard Settings */}
           <div

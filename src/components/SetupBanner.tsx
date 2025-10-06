@@ -197,7 +197,6 @@ export function SetupBanner() {
 
   return (
     <>
-      <UpdateBanner />
       {/* Always-visible small CTA */}
       <div className="flex justify-center mt-1">
         <button

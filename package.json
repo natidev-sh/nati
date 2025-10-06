@@ -1,7 +1,7 @@
 {
   "name": "nati",
   "productName": "Nati",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Free, local, open-source AI app builder",
   "main": ".vite/build/main.js",
   "repository": {
@@ -60,6 +60,7 @@
     "@electron/fuses": "^1.8.0",
     "@playwright/test": "^1.52.0",
     "@testing-library/react": "^16.3.0",
+    "@types/archiver": "^6.0.3",
     "@types/better-sqlite3": "^7.6.13",
     "@types/fs-extra": "^11.0.4",
     "@types/glob": "^8.1.0",
@@ -128,6 +129,7 @@
     "@vercel/sdk": "^1.10.0",
     "@vitejs/plugin-react": "^4.3.4",
     "ai": "^5.0.15",
+    "archiver": "^7.0.1",
     "better-sqlite3": "^11.9.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

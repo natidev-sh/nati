@@ -6,10 +6,18 @@ import { VercelConnector } from "@/components/VercelConnector";
 import { PortalMigrate } from "@/components/PortalMigrate";
 import { IpcClient } from "@/ipc/ipc_client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useState } from "react";
+import { useRouter } from "@tanstack/react-router";
 
 export const PublishPanel = () => {
   const selectedAppId = useAtomValue(selectedAppIdAtom);
   const { app, loading } = useLoadApp(selectedAppId);
+  const router = useRouter();
+  const [shareOpen, setShareOpen] = useState(false);
 
   if (loading) {
     return (
@@ -167,7 +175,152 @@ export const PublishPanel = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Nati Hub Section */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2">
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 2l3 7 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z" />
+              </svg>
+              Nati Hub
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Share your prompts, templates, or plugins with the community, and browse what others have published.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" onClick={() => router.navigate({ to: "/hub" })}>
+                Open Hub
+              </Button>
+              <Button onClick={() => setShareOpen(true)} className="glass-button">
+                Share to Hub
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <ShareToHubDialog
+          open={shareOpen}
+          onOpenChange={setShareOpen}
+          app={app}
+        />
       </div>
     </div>
   );
 };
+
+function ShareToHubDialog({
+  open,
+  onOpenChange,
+  app,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  app: any;
+}) {
+  const [type, setType] = useState<"template" | "prompt" | "plugin">("template");
+  const [title, setTitle] = useState<string>(app?.name || "");
+  const [description, setDescription] = useState<string>("A useful starter built with Nati.");
+  const [copied, setCopied] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exportDone, setExportDone] = useState<string | null>(null);
+
+  const submission = {
+    type,
+    title,
+    description,
+    appId: app?.id ?? null,
+    // Minimal manifest. In the future we can attach files (zip) via a signed URL.
+    manifest: {
+      tech: {
+        runtime: "node",
+      },
+    },
+    createdAt: new Date().toISOString(),
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Share to Nati Hub</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="grid grid-cols-3 gap-2">
+            <button
+              className={`px-3 py-2 rounded-md border text-sm ${type === "template" ? "bg-primary text-primary-foreground" : "hover:bg-gray-50 dark:hover:bg-gray-800"}`}
+              onClick={() => setType("template")}
+              type="button"
+            >
+              Template
+            </button>
+            <button
+              className={`px-3 py-2 rounded-md border text-sm ${type === "prompt" ? "bg-primary text-primary-foreground" : "hover:bg-gray-50 dark:hover:bg-gray-800"}`}
+              onClick={() => setType("prompt")}
+              type="button"
+            >
+              Prompt
+            </button>
+            <button
+              className={`px-3 py-2 rounded-md border text-sm ${type === "plugin" ? "bg-primary text-primary-foreground" : "hover:bg-gray-50 dark:hover:bg-gray-800"}`}
+              onClick={() => setType("plugin")}
+              type="button"
+            >
+              Plugin
+            </button>
+          </div>
+          <div>
+            <Label className="text-sm">Title</Label>
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} className="mt-1" />
+          </div>
+          <div>
+            <Label className="text-sm">Description</Label>
+            <Input value={description} onChange={(e) => setDescription(e.target.value)} className="mt-1" />
+          </div>
+          <div className="p-3 rounded-md bg-black/5 dark:bg-white/5 text-xs break-all select-text">
+            {JSON.stringify(submission)}
+          </div>
+          {exportDone && (
+            <div className="text-sm text-emerald-700 dark:text-emerald-400">
+              Exported to <span className="font-mono">{exportDone}</span>
+            </div>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button
+            onClick={() => {
+              navigator.clipboard.writeText(JSON.stringify(submission, null, 2)).then(() => {
+                setCopied(true);
+                setTimeout(() => setCopied(false), 1500);
+              });
+            }}
+          >
+            {copied ? "Copied" : "Copy Submission JSON"}
+          </Button>
+          <Button
+            disabled={!app?.id || exporting}
+            onClick={async () => {
+              if (!app?.id) return;
+              setExporting(true);
+              try {
+                const ipc = IpcClient.getInstance();
+                const slug = (title || app.name || "submission").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+                const relPath = `hub_submissions/${slug}-${Date.now()}.json`;
+                await ipc.editAppFile(app.id, relPath, JSON.stringify(submission, null, 2));
+                setExportDone(relPath);
+                await ipc.revealInFolder({ appId: app.id, filePath: relPath } as any);
+              } finally {
+                setExporting(false);
+              }
+            }}
+          >
+            {exporting ? "Exporting..." : "Export package"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
