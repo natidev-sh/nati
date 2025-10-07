@@ -128,7 +128,6 @@ export function SetupBanner() {
   if (itemsNeedAction.length === 0) {
     return (
       <div className="flex flex-col items-center">
-        <UpdateBanner />
         {/* GitHub Star CTA */}
         <button
           type="button"

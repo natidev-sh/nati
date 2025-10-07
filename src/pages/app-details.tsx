@@ -9,7 +9,7 @@ import { IpcClient } from "@/ipc/ipc_client";
 import { useLoadApps } from "@/hooks/useLoadApps";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, MoreVertical, MessageCircle, Pencil, Folder, Trash2, Copy } from "lucide-react";
+import { ArrowLeft, MoreVertical, MessageCircle, Pencil, Folder, Trash2, Copy, Calendar, Clock } from "lucide-react";
 import {
   Popover,
   PopoverContent,
@@ -27,7 +27,7 @@ import {
 import { GitHubConnector } from "@/components/GitHubConnector";
 import { SupabaseConnector } from "@/components/SupabaseConnector";
 import { SupabaseDbBrowser } from "@/components/SupabaseDbBrowser";
-import { showError } from "@/lib/toast";
+import { showError, showSuccess } from "@/lib/toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
@@ -649,17 +649,39 @@ export default function AppDetailsPage() {
                 </div>
               </div>
 
-              {/* Metadata section: stacked and readable on small screens */}
+              {/* Metadata section: modern chips with icons */}
               <div className="mt-4 mb-1 space-y-2 text-[12px]">
-                <div className="px-2 py-1 rounded-full bg-white/70 text-zinc-700 shadow-sm dark:bg-white/10 dark:text-zinc-200 border border-white/60 dark:border-white/5">
-                  Created: {new Date().toLocaleString()}
+                <div className="flex items-center gap-2 px-3 py-2 rounded-xl glass-surface border">
+                  <Calendar className="h-3.5 w-3.5 opacity-70" />
+                  <span className="opacity-80">Created</span>
+                  <span className="ml-auto font-medium glass-contrast-text">
+                    {new Date().toLocaleString()}
+                  </span>
                 </div>
-                <div className="px-2 py-1 rounded-full bg-white/70 text-zinc-700 shadow-sm dark:bg-white/10 dark:text-zinc-200 border border-white/60 dark:border-white/5">
-                  Updated: {new Date().toLocaleString()}
+                <div className="flex items-center gap-2 px-3 py-2 rounded-xl glass-surface border">
+                  <Clock className="h-3.5 w-3.5 opacity-70" />
+                  <span className="opacity-80">Updated</span>
+                  <span className="ml-auto font-medium glass-contrast-text">
+                    {new Date().toLocaleString()}
+                  </span>
                 </div>
-                <div className="px-2 py-2 rounded-xl bg-white/70 text-zinc-700 shadow-sm dark:bg-white/10 dark:text-zinc-200 border border-white/60 dark:border-white/5">
-                  <div className="text-[11px] uppercase tracking-wide opacity-80">Path</div>
-                  <div className="mt-0.5 font-mono break-all whitespace-pre-wrap">
+                <div className="px-3 py-2 rounded-xl glass-surface border">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] uppercase tracking-wide opacity-80">Path</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="ml-auto h-7 px-2 py-0.5 hover:bg-white/70 dark:hover:bg-white/10"
+                      onClick={() => {
+                        navigator.clipboard.writeText(fullAppPath).then(() => showSuccess("Path copied"));
+                      }}
+                      title="Copy path"
+                    >
+                      <Copy className="h-3.5 w-3.5" />
+                      <span className="ml-1">Copy</span>
+                    </Button>
+                  </div>
+                  <div className="mt-1.5 rounded-md bg-black/5 dark:bg-white/5 px-2 py-1.5 font-mono text-[11px] break-all whitespace-pre-wrap">
                     {fullAppPath}
                   </div>
                 </div>

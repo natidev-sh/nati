@@ -1,4 +1,4 @@
-import { StrictMode, useEffect } from "react";
+import { StrictMode, useEffect, useRef } from "react";
 import { createRoot } from "react-dom/client";
 import { router } from "./router";
 import { RouterProvider } from "@tanstack/react-router";
@@ -13,6 +13,7 @@ import {
 } from "@tanstack/react-query";
 import { showError, showMcpConsentToast } from "./lib/toast";
 import { IpcClient } from "./ipc/ipc_client";
+import { toast } from "./lib/toast";
 
 // @ts-ignore
 console.log("Running in mode:", import.meta.env.MODE);
@@ -89,6 +90,9 @@ const posthogClient = posthog.init(
 );
 
 function App() {
+  // Toast progress ref must be declared at component scope (not inside effects)
+  const progressToastRef = useRef<string | number | null>(null);
+
   useEffect(() => {
     // Subscribe to navigation state changes
     const unsubscribe = router.subscribe("onResolved", (navigation) => {
@@ -107,6 +111,74 @@ function App() {
     // Clean up subscription when component unmounts
     return () => {
       unsubscribe();
+    };
+  }, []);
+
+  // Global toast notifications for app updates 
+  useEffect(() => {
+    const w = window as any;
+    const handler = (_evt: any, payload: any) => {
+      const type = payload?.type;
+      if (type === "available") {
+        const v = payload?.version ? ` v${payload.version}` : "";
+        toast.info(`Nati update available${v}. Downloading…`);
+      } else if (type === "download-progress") {
+        const percent = Math.max(0, Math.min(100, Math.round(payload?.percent ?? 0)));
+        const id = progressToastRef.current;
+        const node = (
+          <div className="min-w-[240px]">
+            <div className="text-sm font-medium">Nati is downloading an update… {percent}%</div>
+            <div className="mt-2 h-2 w-full rounded bg-white/20 overflow-hidden">
+              <div className="h-2 rounded bg-blue-500" style={{ width: `${percent}%` }} />
+            </div>
+          </div>
+        );
+        if (id == null) {
+          progressToastRef.current = toast.custom(() => node, { duration: Infinity });
+        } else {
+          toast.custom(() => node, { id, duration: Infinity });
+        }
+      } else if (type === "downloaded") {
+        // Clear progress toast
+        if (progressToastRef.current != null) {
+          toast.dismiss(progressToastRef.current);
+          progressToastRef.current = null;
+        }
+        const v = payload?.version ? ` v${payload.version}` : "";
+        toast.custom((t) => (
+          <div className="flex items-center gap-3">
+            <div className="text-sm">
+              <div className="font-semibold">Nati update is ready{v}.</div>
+              <div className="text-xs opacity-80">Restart to apply the update.</div>
+            </div>
+            <button
+              className="ml-2 px-2 py-1 text-xs rounded-md bg-blue-600 text-white hover:bg-blue-700"
+              onClick={async () => {
+                try {
+                  await w?.electron?.ipcRenderer?.invoke("update:quit-and-install");
+                } catch (e) {
+                  showError(String(e));
+                }
+              }}
+            >
+              Restart now
+            </button>
+            <button
+              className="px-2 py-1 text-xs rounded-md border hover:bg-white/10"
+              onClick={() => toast.dismiss(t)}
+            >
+              Later
+            </button>
+          </div>
+        ), { duration: Infinity });
+      } else if (type === "error") {
+        showError(payload?.message || "Update error");
+      }
+    };
+    const off = w?.electron?.ipcRenderer?.on("update-status", handler);
+    return () => {
+      try { off?.(); } catch {}
+      try { w?.electron?.ipcRenderer?.removeAllListeners?.("update-status"); } catch {}
     };
   }, []);
 

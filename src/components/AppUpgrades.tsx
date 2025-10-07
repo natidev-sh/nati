@@ -136,7 +136,7 @@ export function AppUpgrades({ appId }: { appId: number | null }) {
               <Button
                 onClick={() => handleUpgrade(upgrade.id)}
                 disabled={isUpgrading && upgradingVariables === upgrade.id}
-                className="ml-4 flex-shrink-0 glass-surface glass-hover border"
+                className="ml-4 flex-shrink-0 glass-surface glass-hover border text-black dark:text-white cursor-pointer"
                 size="sm"
                 data-testid={`app-upgrade-${upgrade.id}`}
               >

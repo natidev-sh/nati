@@ -91,6 +91,11 @@ export async function onReady() {
 
     const send = (payload: any) => mainWindow?.webContents.send("update-status", payload);
 
+    // Configure updater to avoid OS-level restart prompts; we will handle UX in renderer
+    try { updater.autoInstallOnAppQuit = false; } catch {}
+    // Keep autoDownload as-is (default true). If you prefer manual download, set to false and expose IPC.
+    // try { updater.autoDownload = false; } catch {}
+
     try {
       // Some updaters emit this when a check begins
       updater.on?.("checking-for-update", () => {
@@ -283,20 +288,10 @@ const createWindow = () => {
     mainWindow.webContents.openDevTools();
   }
 
-  // Intercept close to minimize to tray on Windows
-  mainWindow.on("close", (e) => {
-    if (process.platform === "win32" && tray && !isQuittingForUpdate) {
-      e.preventDefault();
-      mainWindow?.hide();
-      if (!didShowTrayTip) {
-        tray.displayBalloon?.({
-          iconType: "info",
-          title: "Nati",
-          content: "Nati is still running in the system tray.",
-        });
-        didShowTrayTip = true;
-      }
-    }
+  // Close should quit the app (no minimize-to-tray interception)
+  // We still keep the tray for quick access while the app is running.
+  mainWindow.on("close", () => {
+    // If we ever need special handling when quitting for update, it's tracked by isQuittingForUpdate
   });
 };
 
