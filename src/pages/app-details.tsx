@@ -16,6 +16,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Dialog,
   DialogContent,
@@ -28,6 +29,7 @@ import { GitHubConnector } from "@/components/GitHubConnector";
 import { SupabaseConnector } from "@/components/SupabaseConnector";
 import { SupabaseDbBrowser } from "@/components/SupabaseDbBrowser";
 import { showError, showSuccess } from "@/lib/toast";
+import { formatDistanceToNow } from "date-fns";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
@@ -574,6 +576,13 @@ export default function AppDetailsPage() {
   }
 
   const fullAppPath = appBasePath.replace("$APP_BASE_PATH", selectedApp.path);
+  // In a future iteration, replace these with real created/updated timestamps from the app record if available
+  const createdAt = new Date();
+  const updatedAt = new Date();
+  const createdAbs = createdAt.toLocaleString();
+  const updatedAbs = updatedAt.toLocaleString();
+  const createdRel = formatDistanceToNow(createdAt, { addSuffix: true });
+  const updatedRel = formatDistanceToNow(updatedAt, { addSuffix: true });
 
   return (
     <div
@@ -650,52 +659,89 @@ export default function AppDetailsPage() {
               </div>
 
               {/* Metadata section: modern chips with icons */}
-              <div className="mt-4 mb-1 space-y-2 text-[12px]">
-                <div className="flex items-center gap-2 px-3 py-2 rounded-xl glass-surface border">
-                  <Calendar className="h-3.5 w-3.5 opacity-70" />
-                  <span className="opacity-80">Created</span>
-                  <span className="ml-auto font-medium glass-contrast-text">
-                    {new Date().toLocaleString()}
-                  </span>
+              <TooltipProvider>
+                <div className="mt-4 mb-1 space-y-2 text-[12px]">
+                  {/* Created */}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="px-3 py-2 rounded-xl glass-surface border cursor-default">
+                        <div className="flex sm:flex-row flex-col sm:items-center items-start gap-1.5">
+                          <div className="flex items-center gap-2">
+                            <Calendar className="h-3.5 w-3.5 opacity-70" />
+                            <span className="opacity-80">Created</span>
+                          </div>
+                          <div className="sm:ml-auto font-medium glass-contrast-text">
+                          </div>
+                          <div className="text-[11px] opacity-70 sm:ml-2">{createdRel}</div>
+                        </div>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">
+                      <div className="text-xs">{createdAbs}</div>
+                    </TooltipContent>
+                  </Tooltip>
+
+                  {/* Updated */}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="px-3 py-2 rounded-xl glass-surface border cursor-default">
+                        <div className="flex sm:flex-row flex-col sm:items-center items-start gap-1.5">
+                          <div className="flex items-center gap-2">
+                            <Clock className="h-3.5 w-3.5 opacity-70" />
+                            <span className="opacity-80">Updated</span>
+                          </div>
+                          <div className="sm:ml-auto font-medium glass-contrast-text">
+                          </div>
+                          <div className="text-[11px] opacity-70 sm:ml-2">{updatedRel}</div>
+                        </div>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">
+                      <div className="text-xs">{updatedAbs}</div>
+                    </TooltipContent>
+                  </Tooltip>
+
+                  {/* Path */}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="px-3 py-2 rounded-xl glass-surface border">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] uppercase tracking-wide opacity-80">Path</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="ml-auto h-7 px-2 py-0.5 hover:bg-white/70 dark:hover:bg-white/10"
+                            onClick={() => {
+                              navigator.clipboard.writeText(fullAppPath).then(() => showSuccess("Path copied"));
+                            }}
+                            title="Copy path"
+                          >
+                            <Copy className="h-3.5 w-3.5" />
+                            <span className="ml-1">Copy</span>
+                          </Button>
+                        </div>
+                        <div className="mt-1.5 rounded-md bg-black/5 dark:bg-white/5 px-2 py-1.5 font-mono text-[11px] break-all whitespace-pre-wrap">
+                          {fullAppPath}
+                        </div>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">
+                      <div className="max-w-[360px] break-all text-xs">{fullAppPath}</div>
+                    </TooltipContent>
+                  </Tooltip>
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 py-0.5 hover:bg-white/70 dark:hover:bg-white/10 justify-start w-fit"
+                    onClick={() => IpcClient.getInstance().showItemInFolder(fullAppPath)}
+                    title="Show in File Explorer"
+                  >
+                    <Folder className="h-3.5 w-3.5" />
+                    <span className="ml-1">Show in File Explorer</span>
+                  </Button>
                 </div>
-                <div className="flex items-center gap-2 px-3 py-2 rounded-xl glass-surface border">
-                  <Clock className="h-3.5 w-3.5 opacity-70" />
-                  <span className="opacity-80">Updated</span>
-                  <span className="ml-auto font-medium glass-contrast-text">
-                    {new Date().toLocaleString()}
-                  </span>
-                </div>
-                <div className="px-3 py-2 rounded-xl glass-surface border">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[11px] uppercase tracking-wide opacity-80">Path</span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="ml-auto h-7 px-2 py-0.5 hover:bg-white/70 dark:hover:bg-white/10"
-                      onClick={() => {
-                        navigator.clipboard.writeText(fullAppPath).then(() => showSuccess("Path copied"));
-                      }}
-                      title="Copy path"
-                    >
-                      <Copy className="h-3.5 w-3.5" />
-                      <span className="ml-1">Copy</span>
-                    </Button>
-                  </div>
-                  <div className="mt-1.5 rounded-md bg-black/5 dark:bg-white/5 px-2 py-1.5 font-mono text-[11px] break-all whitespace-pre-wrap">
-                    {fullAppPath}
-                  </div>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 px-2 py-0.5 hover:bg-white/70 dark:hover:bg-white/10 justify-start w-fit"
-                  onClick={() => IpcClient.getInstance().showItemInFolder(fullAppPath)}
-                  title="Show in File Explorer"
-                >
-                  <Folder className="h-3.5 w-3.5" />
-                  <span className="ml-1">Show in File Explorer</span>
-                </Button>
-              </div>
+              </TooltipProvider>
             </div>
           </div>
 
