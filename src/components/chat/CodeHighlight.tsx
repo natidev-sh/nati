@@ -57,8 +57,7 @@ export const CodeHighlight = memo(
     const displayedCode = highlightedCode || highlightedCodeCache.current;
     return !isInline ? (
       <div
-        className="shiki not-prose relative [&_pre]:overflow-auto 
-      [&_pre]:rounded-lg [&_pre]:px-6 [&_pre]:py-7"
+        className="shiki not-prose relative [&_pre]:overflow-auto [&_pre]:rounded-lg [&_pre]:px-6 [&_pre]:py-7 border bg-muted/30"
       >
         {language ? (
           <div className="absolute top-2 left-2 right-2 text-xs flex justify-between">

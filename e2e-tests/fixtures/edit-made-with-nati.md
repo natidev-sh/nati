@@ -1,4 +1,4 @@
-<dyad-write path="src/components/made-with-nati.tsx" description="write-description">
+<nati-write path="src/components/made-with-nati.tsx" description="write-description">
 export const MadeWithNati = () => {
   return (
     <div className="p-4 text-center">
@@ -13,4 +13,4 @@ export const MadeWithNati = () => {
     </div>
   );
 };
-</dyad-write>
+<dyad-write>

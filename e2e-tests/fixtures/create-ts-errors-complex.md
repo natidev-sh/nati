@@ -3,7 +3,7 @@ Tests delete-rename-write order
 </dyad-delete>
 <dyad-rename from="src/App.tsx" to="src/main.tsx">
 </dyad-rename>
-<dyad-write path="src/main.tsx" description="final main.tsx file.">
+<nati-write path="src/main.tsx" description="final main.tsx file.">
 finalMainTsxFileWithError();
-</dyad-write>
+<dyad-write>
 EOM

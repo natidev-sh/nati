@@ -5,7 +5,7 @@ import {
   CreateOrEditPromptDialog,
 } from "@/components/CreatePromptDialog";
 import { DeleteConfirmationDialog } from "@/components/DeleteConfirmationDialog";
-import { BookOpen, FileText, PlusCircle } from "lucide-react";
+import { BookOpen, FileText, PlusCircle, Terminal } from "lucide-react";
 
 export default function LibraryPage() {
   const { prompts, isLoading, createPrompt, updatePrompt, deletePrompt } =
@@ -19,12 +19,12 @@ export default function LibraryPage() {
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-[#ed3378] to-[#c81e5d] text-white flex items-center justify-center shadow-sm">
-                <BookOpen className="h-5 w-5" />
+                <Terminal className="h-5 w-5" />
               </div>
               <div>
-                <h1 className="text-2xl sm:text-3xl font-bold glass-contrast-text">Library</h1>
+                <h1 className="text-2xl sm:text-3xl font-bold glass-contrast-text">Prompt Library</h1>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  Manage reusable building blocks for your apps. Create and organize prompts you can reuse across projects.
+                  Create and organize prompts you can reuse across projects.
                 </p>
               </div>
             </div>

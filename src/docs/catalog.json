@@ -1,0 +1,158 @@
+{
+  "providers": [
+    {
+      "id": "stripe",
+      "name": "Stripe",
+      "moreUrl": "https://docs.stripe.com/",
+      "sections": [
+        {
+          "id": "stripe-full-docs",
+          "title": "Full Docs",
+          "url": "https://docs.stripe.com/",
+          "summary": "Open the complete Stripe documentation site."
+        },
+        {
+          "id": "stripe-local-quickstart",
+          "title": "Build a Checkout page (local)",
+          "url": "local:stripe/quickstart.md",
+          "summary": "Step-by-step sample for Stripe-hosted Checkout."
+        },
+        {
+          "id": "stripe-local-webhooks",
+          "title": "Webhooks (local)",
+          "url": "local:stripe/webhooks.md",
+          "summary": "Set up and verify a webhook endpoint; test with Stripe CLI."
+        },
+        {
+          "id": "stripe-local-testing",
+          "title": "Testing (local)",
+          "url": "local:stripe/testing.md",
+          "summary": "Use test cards and PaymentMethods to simulate scenarios."
+        },
+        {
+          "id": "stripe-local-api-reference",
+          "title": "API Reference (local)",
+          "url": "local:stripe/api-reference.md",
+          "summary": "REST API overview, auth, and base URL."
+        },
+        {
+          "id": "stripe-local-receive-payouts",
+          "title": "Receive payouts (local)",
+          "url": "local:stripe/receive-payouts.md",
+          "summary": "Configure bank accounts, schedules, and speeds."
+        },
+        {
+          "id": "stripe-local-currencies",
+          "title": "Supported currencies (local)",
+          "url": "local:stripe/currencies.md",
+          "summary": "Presentment vs settlement, zero-decimal, and limits."
+        },
+        {
+          "id": "stripe-local-customize-appearance",
+          "title": "Customize Checkout appearance (local)",
+          "url": "local:stripe/customize-appearance.md",
+          "summary": "Branding, fonts, shapes; dashboard and API."
+        },
+        {
+          "id": "checkout-quickstart",
+          "title": "Checkout quickstart",
+          "url": "https://docs.stripe.com/checkout/quickstart.md",
+          "summary": "Create a Stripe-hosted Checkout Session for one-time payments or subscriptions. Prefer dynamic payment methods; do not hardcode payment_method_types."
+        },
+        {
+          "id": "webhooks-quickstart",
+          "title": "Webhooks quickstart",
+          "url": "https://docs.stripe.com/webhooks/quickstart.md",
+          "summary": "Set up an endpoint to receive Stripe events. Verify signatures with the webhook signing secret and handle idempotency."
+        },
+        {
+          "id": "get-started",
+          "title": "Get started",
+          "url": "https://docs.stripe.com/get-started",
+          "summary": "Overview of Stripe products, API keys, and test mode. Use Payment Intents or Checkout instead of legacy Charges or Tokens APIs."
+        }
+      ]
+    },
+    {
+      "id": "resend",
+      "name": "Resend",
+      "moreUrl": "https://resend.com/docs",
+      "sections": [
+        {
+          "id": "intro",
+          "title": "Emails introduction",
+          "url": "local:resend/emails-introduction.md",
+          "summary": "Overview of Resend email dashboard and sending model. Configure your API key and verified domain/from address."
+        },
+        {
+          "id": "attachments",
+          "title": "Attachments",
+          "url": "local:resend/attachments.md",
+          "summary": "Attach files to emails. Ensure correct content types and base64 encoding when sending via API."
+        },
+        {
+          "id": "inline-images",
+          "title": "Embed inline images",
+          "url": "local:resend/embed-inline-images.md",
+          "summary": "Embed images inline using Content-ID (CID) to display within HTML emails."
+        },
+        {
+          "id": "schedule",
+          "title": "Schedule email",
+          "url": "local:resend/schedule-email.md",
+          "summary": "Schedule email delivery for a future time using the dashboard or API parameters."
+        },
+        {
+          "id": "custom-headers",
+          "title": "Custom headers",
+          "url": "local:resend/custom-headers.md",
+          "summary": "Add custom headers for tracking and integrations (e.g., List-Unsubscribe)."
+        },
+        { "id": "resend-local-api-keys-intro", "title": "API Keys (local)", "url": "local:resend/api-keys-introduction.md", "summary": "Overview of API keys and best practices." },
+        { "id": "resend-local-create-api-key", "title": "Create API key (local)", "url": "local:resend/create-api-key.md", "summary": "Add a new API key and examples across SDKs." },
+        { "id": "resend-local-verify-domain", "title": "Verify domain (local)", "url": "local:resend/verify-your-domain.md", "summary": "Verify an existing domain." },
+        { "id": "resend-local-idempotency", "title": "Idempotency keys (local)", "url": "local:resend/idempodency-keys.md", "summary": "Ensure the same email request is processed only once." },
+        { "id": "resend-local-batch-validation", "title": "Batch validation modes (local)", "url": "local:resend/batch-validation-modes.md", "summary": "Strict vs permissive validation for batch sends." },
+        { "id": "resend-local-email-bounces", "title": "Email bounces (local)", "url": "local:resend/email-bounces.md", "summary": "Understand and resolve delivery issues." },
+        { "id": "resend-local-email-templates", "title": "Email templates (local)", "url": "local:resend/email-templates.md", "summary": "Use React Email for high-quality templates." },
+        { "id": "resend-local-deliverability-insights", "title": "Deliverability insights (local)", "url": "local:resend/deliverability-insights.md", "summary": "Checks and suggestions to improve inbox placement." },
+        { "id": "resend-local-unsubscribe-link", "title": "Unsubscribe in transactional (local)", "url": "local:resend/add-unsubscribe-to-transactional-emails.md", "summary": "Add List-Unsubscribe headers per new requirements." },
+        { "id": "resend-local-tags", "title": "Managing tags (local)", "url": "local:resend/tags.md", "summary": "Attach key/value tags to emails and receive via webhooks." },
+        { "id": "resend-local-managing-domains", "title": "Managing domains (local)", "url": "local:resend/managing-domains.md", "summary": "View and configure domains in the dashboard." },
+        { "id": "resend-local-regions", "title": "Choosing a region (local)", "url": "local:resend/regions.md", "summary": "Send from multiple regions for speed and resilience." },
+        { "id": "resend-local-dmarc", "title": "Implementing DMARC (local)", "url": "local:resend/dmarc.md", "summary": "Build trust with DMARC alongside SPF/DKIM." },
+        { "id": "resend-local-webhooks", "title": "Managing webhooks (local)", "url": "local:resend/managing-webhooks.md", "summary": "Receive real-time events and retry behavior." },
+        { "id": "resend-local-unsubscribe-page", "title": "Custom unsubscribe page (local)", "url": "local:resend/unsubscribe-page.md", "summary": "Customize the unsubscribe experience and branding." }
+      ]
+    },
+    {
+      "id": "nati",
+      "name": "Nati",
+      "moreUrl": "https://github.com/natidev-sh/nati",
+      "sections": [
+        {
+          "id": "nati-getting-started",
+          "title": "Getting Started",
+          "url": "local:nati/getting-started.md",
+          "summary": "Overview of Nati concepts (Apps, Chats, Hub, Configure) and a quickstart.",
+          "emoji": "🚀"
+        },
+        {
+          "id": "nati-faq",
+          "title": "FAQ",
+          "url": "local:nati/faq.md",
+          "summary": "Common questions about Nati usage, local models, env vars, and support.",
+          "emoji": "❓"
+        },
+        { "id": "nati-keyboard-shortcuts", "title": "Keyboard Shortcuts", "url": "local:nati/keyboard-shortcuts.md", "summary": "Handy shortcuts for faster navigation and editing.", "emoji": "⌨️" },
+        { "id": "nati-chat-tips", "title": "Chat Tips", "url": "local:nati/chat-tips.md", "summary": "Get better results with prompts, diffs, and tests-first.", "emoji": "💬" },
+        { "id": "nati-troubleshooting", "title": "Troubleshooting", "url": "local:nati/troubleshooting.md", "summary": "Fix common issues with builds, env vars, and networking.", "emoji": "🛠️" },
+        { "id": "nati-templates-plugins", "title": "Templates & Plugins", "url": "local:nati/templates-plugins.md", "summary": "Start faster with templates and extend with plugins.", "emoji": "🧩" },
+        { "id": "nati-configure", "title": "Configure", "url": "local:nati/configure.md", "summary": "Manage environment variables, quick actions, versioning, backups.", "emoji": "⚙️" },
+        { "id": "nati-ai-providers", "title": "AI Providers", "url": "local:nati/ai-providers.md", "summary": "Overview of supported providers, keys, regions, limits.", "emoji": "🤖" },
+        { "id": "nati-legal", "title": "Legal", "url": "local:nati/legal.md", "summary": "Privacy, telemetry, licenses, and trademarks.", "emoji": "⚖️" },
+        { "id": "nati-security", "title": "Security", "url": "local:nati/security.md", "summary": "Key handling, storage, and network considerations.", "emoji": "🔐" }
+      ]
+    }
+  ]
+}

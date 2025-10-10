@@ -166,9 +166,9 @@ message: Tests delete-rename-write order
 </dyad-delete>
 <dyad-rename from="src/App.tsx" to="src/main.tsx">
 </dyad-rename>
-<dyad-write path="src/main.tsx" description="final main.tsx file.">
+<nati-write path="src/main.tsx" description="final main.tsx file.">
 finalMainTsxFileWithError();
-</dyad-write>
+<dyad-write>
 EOM
 
 ===
@@ -185,14 +185,14 @@ Please fix all errors in a concise way.
 
 ===
 role: assistant
-message: <dyad-write path="src/bad-file.ts" description="Fix remaining error.">
+message: <nati-write path="src/bad-file.ts" description="Fix remaining error.">
 // Import doesn't exist
 // import NonExistentClass from 'non-existent-class';
 
 
 const x = new Object();
 x.toString(); // replaced with existing method
-</dyad-write>
+<dyad-write>
 
       
 

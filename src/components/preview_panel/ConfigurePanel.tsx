@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAtomValue } from "jotai";
 import { appsListAtom, appBasePathAtom } from "@/atoms/appAtoms";
@@ -74,6 +74,14 @@ export const ConfigurePanel = () => {
   const [copyName, setCopyName] = useState("");
   const [isCopying, setIsCopying] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  // Test email state
+  const [testEmailTo, setTestEmailTo] = useState("");
+  const [sendingTest, setSendingTest] = useState(false);
+  // Resend icons
+  const resendIconBlack = new URL("../../../assets/resend-brand-assets/resend-icon-black.svg", import.meta.url).toString();
+  const resendIconWhite = new URL("../../../assets/resend-brand-assets/resend-icon-white.svg", import.meta.url).toString();
+  const stripeLogoColor = new URL("../../../assets/stripe-brand-assets/stripe-logo-color.svg", import.meta.url).toString();
+  const stripeLogoWhite = new URL("../../../assets/stripe-brand-assets/stripe-logo-white.svg", import.meta.url).toString();
 
   // Query to get environment variables
   const {
@@ -89,6 +97,13 @@ export const ConfigurePanel = () => {
     },
     enabled: !!selectedAppId,
   });
+
+  const hasResend = useMemo(() => (envVars || []).some(e => e.key === "RESEND_API_KEY" || e.key === "RESEND_FROM_EMAIL"), [envVars]);
+  const hasStripe = useMemo(() => (envVars || []).some(e => e.key.startsWith("STRIPE_")), [envVars]);
+  const [stripeSuccessUrl, setStripeSuccessUrl] = useState("https://example.com/success");
+  const [stripeCancelUrl, setStripeCancelUrl] = useState("https://example.com/cancel");
+  const [stripePriceId, setStripePriceId] = useState("");
+  const [creatingSession, setCreatingSession] = useState(false);
 
   // Mutation to save environment variables
   const saveEnvVarsMutation = useMutation({
@@ -187,6 +202,7 @@ export const ConfigurePanel = () => {
     setNewValue("");
   }, []);
 
+
   // Show loading state
   if (isLoading) {
     return (
@@ -262,6 +278,7 @@ export const ConfigurePanel = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          
           {/* Add new environment variable form */}
           {isAddingNew ? (
             <div className="space-y-3 p-3 border rounded-md bg-muted/50">
@@ -309,6 +326,69 @@ export const ConfigurePanel = () => {
               Add Environment Variable
             </Button>
           )}
+
+      {/* Stripe (only if implemented) */}
+      {hasStripe && (
+        <Card>
+          <CardHeader className="select-none">
+            <CardTitle className="flex items-center gap-2">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={stripeLogoColor} alt="Stripe" className="h-4 w-auto dark:hidden" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={stripeLogoWhite} alt="Stripe" className="h-4 w-auto hidden dark:block" />
+              Stripe Checkout
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="text-sm text-muted-foreground">Create a test Checkout Session using your configured Stripe keys. Use <button className="underline hover:opacity-80" onClick={()=> (navigate as any)({ to: "/docs", search: { provider: "stripe", section: "stripe-local-testing" } })}>test cards</button>.</div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+              <Input placeholder="Success URL" value={stripeSuccessUrl} onChange={(e)=>setStripeSuccessUrl(e.target.value)} />
+              <Input placeholder="Cancel URL" value={stripeCancelUrl} onChange={(e)=>setStripeCancelUrl(e.target.value)} />
+              <Input placeholder="Price ID (optional)" value={stripePriceId} onChange={(e)=>setStripePriceId(e.target.value)} />
+            </div>
+            <div className="flex gap-2 items-center">
+              <Button
+                variant="default"
+                onClick={async ()=>{
+                  const secret = envVars.find(e=>e.key==="STRIPE_SECRET_KEY")?.value?.trim();
+                  const publishable = envVars.find(e=>e.key==="STRIPE_PUBLISHABLE_KEY")?.value?.trim();
+                  if(!secret){ showError("STRIPE_SECRET_KEY is not set"); return; }
+                  if(!publishable){ showError("STRIPE_PUBLISHABLE_KEY is not set"); return; }
+                  setCreatingSession(true);
+                  try{
+                    const resp = await fetch("https://api.stripe.com/v1/checkout/sessions",{
+                      method:"POST",
+                      headers:{
+                        Authorization:`Bearer ${secret}`,
+                        "Content-Type":"application/x-www-form-urlencoded",
+                      },
+                      body:new URLSearchParams({
+                        mode:"payment",
+                        success_url: stripeSuccessUrl,
+                        cancel_url: stripeCancelUrl,
+                        ...(stripePriceId?{ "line_items[0][price]": stripePriceId, "line_items[0][quantity]":"1" }:{ "line_items[0][price_data][currency]":"usd","line_items[0][price_data][unit_amount]":"500","line_items[0][price_data][product_data][name]":"Test Item","line_items[0][quantity]":"1"})
+                      } as any).toString()
+                    });
+                    if(!resp.ok){ const t=await resp.text(); throw new Error(t||`HTTP ${resp.status}`); }
+                    const data = await resp.json();
+                    const url = data?.url as string | undefined;
+                    if(!url) throw new Error("No session URL returned");
+                    window.open(url, "_blank");
+                    showSuccess("Opened Stripe Checkout in a new tab");
+                  }catch(e:any){
+                    showError(`Failed to create session: ${e?.message||e}`);
+                  }finally{ setCreatingSession(false); }
+                }}
+                disabled={creatingSession}
+              >
+                {creatingSession? <Loader2 className="h-4 w-4 animate-spin"/>: "Create test Checkout Session"}
+              </Button>
+              <button className="text-xs underline text-muted-foreground" onClick={()=> (navigate as any)({ to: "/docs", search: { provider: "stripe", section: "stripe-local-quickstart" } })}>Checkout quickstart</button>
+              <button className="text-xs underline text-muted-foreground" onClick={()=> (navigate as any)({ to: "/docs", search: { provider: "stripe", section: "stripe-local-webhooks" } })}>Webhooks</button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
           {/* List of existing environment variables */}
           <div className="space-y-2">
@@ -421,6 +501,68 @@ export const ConfigurePanel = () => {
       <div className="grid grid-cols-1 gap-6">
         <NeonConfigure />
       </div>
+
+      {/* Resend (only if implemented) */}
+      {hasResend && (
+        <Card>
+          <CardHeader className="select-none">
+            <CardTitle className="flex items-center gap-2">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={resendIconBlack} alt="Resend" className="h-4 w-4 dark:hidden" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={resendIconWhite} alt="Resend" className="h-4 w-4 hidden dark:block" />
+              Resend
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="text-sm text-muted-foreground">Send a test email using your configured <code>RESEND_API_KEY</code> and <code>RESEND_FROM_EMAIL</code>.</div>
+            <div className="flex gap-2 items-center">
+              <Input
+                placeholder="Recipient email (you@domain.com)"
+                value={testEmailTo}
+                onChange={(e) => setTestEmailTo(e.target.value)}
+              />
+              <Button
+                onClick={async () => {
+                  const key = envVars.find((e) => e.key === "RESEND_API_KEY")?.value?.trim();
+                  const from = envVars.find((e) => e.key === "RESEND_FROM_EMAIL")?.value?.trim();
+                  if (!key) { showError("RESEND_API_KEY is not set"); return; }
+                  if (!from) { showError("RESEND_FROM_EMAIL is not set"); return; }
+                  if (!testEmailTo.trim()) { showError("Enter a recipient email"); return; }
+                  setSendingTest(true);
+                  try {
+                    const resp = await fetch("https://api.resend.com/emails", {
+                      method: "POST",
+                      headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${key}`,
+                      },
+                      body: JSON.stringify({
+                        from,
+                        to: testEmailTo.trim(),
+                        subject: "Test email from Nati (Resend)",
+                        html: `<div style=\"font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto\">Hello from <b>Nati</b> 👋<br/><br/>This is a test email sent via <a href=\"https://resend.com\">Resend</a> using your configured API key.</div>`,
+                      }),
+                    });
+                    if (!resp.ok) {
+                      const txt = await resp.text();
+                      throw new Error(txt || `HTTP ${resp.status}`);
+                    }
+                    showSuccess("Test email sent");
+                  } catch (e: any) {
+                    showError(`Failed to send: ${e?.message || e}`);
+                  } finally {
+                    setSendingTest(false);
+                  }
+                }}
+                disabled={sendingTest}
+              >
+                {sendingTest ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send Test"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Versioning */}
       <Card>

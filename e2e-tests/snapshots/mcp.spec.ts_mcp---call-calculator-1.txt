@@ -65,14 +65,14 @@ message: <dyad-mcp-tool-call server="testing-mcp-server" tool="calculator_add">
 {"content":[{"type":"text","text":"3"}],"isError":false}
 </dyad-mcp-tool-result>
 
-  <dyad-write path="file1.txt">
+  <nati-write path="file1.txt">
   A file (2)
-  </dyad-write>
+  <dyad-write>
   More
   EOM
-  <dyad-write path="file1.txt">
+  <nati-write path="file1.txt">
   A file (2)
-  </dyad-write>
+  <dyad-write>
   More
   EOM
 

@@ -1099,6 +1099,11 @@ export class IpcClient {
     return response?.models || [];
   }
 
+  // --- Docs proxy ---
+  public async docsFetch(url: string, force?: boolean): Promise<{ html: string; fetchedAt: number; cached?: boolean }>{
+    return this.ipcRenderer.invoke("docs:fetch", { url, force });
+  }
+
   // Listen for deep link events
   public onDeepLinkReceived(
     callback: (data: DeepLinkData) => void,

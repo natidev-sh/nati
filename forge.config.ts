@@ -55,8 +55,8 @@ const config: ForgeConfig = {
   packagerConfig: {
     protocols: [
       {
-        name: "Dyad",
-        schemes: ["dyad"],
+        name: "Nati",
+        schemes: ["nati"],
       },
     ],
     // Windows: provide base path without extension; ensure ./assets/win/app.ico exists

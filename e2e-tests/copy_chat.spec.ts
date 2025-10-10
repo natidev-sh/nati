@@ -45,7 +45,7 @@ test("copy message content - dyad-write conversion", async ({ po }) => {
   // Should convert dyad-write to markdown format (flexible path matching)
   expect(clipboardContent).toContain("### File:");
   expect(clipboardContent).toContain("```");
-  expect(clipboardContent).not.toContain("<dyad-write");
+  expect(clipboardContent).not.toContain("<nati-write");
 });
 
 test("copy button tooltip states", async ({ po }) => {

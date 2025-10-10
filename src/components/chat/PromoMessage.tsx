@@ -192,7 +192,6 @@ export const ROADMAP_TIP: MessageConfig = {
   ],
 };
 
-// Like Dyad? Star it on GitHub https://github.com/dyad-sh/dyad/
 export const GITHUB_TIP: MessageConfig = {
   spans: [
     {

@@ -9,6 +9,7 @@ import { hubRoute } from "./routes/hub";
 import { dbBrowserRoute } from "./routes/db-browser";
 import { neonBrowserRoute } from "./routes/neon-browser";
 import { libraryRoute } from "./routes/library";
+import { docsRoute } from "./routes/docs";
 
 const routeTree = rootRoute.addChildren([
   homeRoute,
@@ -19,6 +20,7 @@ const routeTree = rootRoute.addChildren([
   dbBrowserRoute,
   neonBrowserRoute,
   settingsRoute.addChildren([providerSettingsRoute]),
+  docsRoute,
 ]);
 
 // src/components/NotFoundRedirect.tsx

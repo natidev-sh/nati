@@ -6,12 +6,12 @@ import { cleanFullResponse } from "../utils/cleanFullResponse";
 const TEST_RESPONSES: Record<string, string> = {
   "ts-error": `This will get a TypeScript error.
   
-  <dyad-write path="src/bad-file.ts" description="This will get a TypeScript error.">
+  <nati-write path="src/bad-file.ts" description="This will get a TypeScript error.">
   import NonExistentClass from 'non-existent-class';
 
   const x = new Object();
   x.nonExistentMethod();
-  </dyad-write>
+  <dyad-write>
   
   EOM`,
   "add-dep": `I'll add that dependency for you.
@@ -30,14 +30,14 @@ const TEST_RESPONSES: Record<string, string> = {
   
   EOM`,
   write: `Hello world
-  <dyad-write path="src/hello.ts" content="Hello world">
+  <nati-write path="src/hello.ts" content="Hello world">
   console.log("Hello world");
-  </dyad-write>
+  <dyad-write>
   EOM`,
   "string-literal-leak": `BEFORE TAG
-  <dyad-write path="src/pages/locations/neighborhoods/louisville/Highlands.tsx" description="Updating Highlands neighborhood page to use <a> tags.">
+  <nati-write path="src/pages/locations/neighborhoods/louisville/Highlands.tsx" description="Updating Highlands neighborhood page to use <a> tags.">
 import React from 'react';
-</dyad-write>
+<dyad-write>
 AFTER TAG
 `,
 };

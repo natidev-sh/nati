@@ -33,11 +33,11 @@ export const Console = () => {
   return (
     <div
       ref={containerRef}
-      className="h-full overflow-auto px-4 py-2 rounded-b-2xl border-t"
+      className="h-full overflow-auto px-4 py-2 rounded-b-2xl border-t font-mono"
       style={{ background: styleVars.background, color: styleVars.foreground, fontSize: styleVars.fontSize }}
     >
       {appOutput.map((output, index) => (
-        <div key={index} className="whitespace-pre-wrap leading-relaxed">
+        <div key={index} className="whitespace-pre leading-snug">
           {output.message}
         </div>
       ))}

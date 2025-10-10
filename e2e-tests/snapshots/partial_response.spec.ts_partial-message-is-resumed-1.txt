@@ -174,9 +174,9 @@ message: Generate an AI_RULES.md file for this app. Describe the tech stack in 5
 
 ===
 role: assistant
-message: <dyad-write path="file1.txt">
+message: <nati-write path="file1.txt">
   A file (2)
-  </dyad-write>
+  <dyad-write>
   More
   EOM
 
@@ -187,5 +187,5 @@ message: tc=partial-write
 ===
 role: assistant
 message: START OF MESSAGE
-<dyad-write path="src/new-file.ts" description="this file will be partially written">
+<nati-write path="src/new-file.ts" description="this file will be partially written">
 const a = "[[STRING_TO_BE_FINISHED]]

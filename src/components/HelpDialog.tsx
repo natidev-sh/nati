@@ -19,6 +19,7 @@ import {
   KeyboardIcon,
 } from "lucide-react";
 import { IpcClient } from "@/ipc/ipc_client";
+import { useNavigate } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { useAtomValue } from "jotai";
 import { selectedChatIdAtom } from "@/atoms/chatAtoms";
@@ -34,6 +35,7 @@ interface HelpDialogProps {
 }
 
 export function HelpDialog({ isOpen, onClose }: HelpDialogProps) {
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [reviewMode, setReviewMode] = useState(false);
@@ -403,11 +405,12 @@ Session ID: ${sessionId}
             <div className="flex flex-col space-y-2">
               <Button
                 variant="outline"
-                onClick={() => {
-                  IpcClient.getInstance().openExternalUrl(
-                    "https://www.dyad.sh/docs",
-                  );
-                }}
+                onClick={() =>
+                  (navigate as any)({
+                    to: "/docs",
+                    search: { provider: "nati", section: "nati-getting-started" },
+                  })
+                }
                 className="w-full py-5 rounded-xl glass-surface glass-hover ring-1 ring-white/40 dark:ring-white/10"
               >
                 <BookOpenIcon className="mr-2 h-5 w-5" /> Open Docs

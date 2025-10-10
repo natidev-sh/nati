@@ -38,12 +38,12 @@ model_list:
 # - Do NOT expose LITELLM_MASTER_KEY to clients. Use it only to call /key/* admin endpoints.
 # - After starting the proxy, mint a Virtual Key using the admin (master) key, e.g.:
 #     PowerShell example:
-#       $env:LITELLM_MASTER_KEY = "<your-admin-key>"
-#       litellm --config .\litellm.yaml --port 4000
-#       $admin = $env:LITELLM_MASTER_KEY
-#       $body  = @{ metadata = @{ purpose = "dev-pro" } } | ConvertTo-Json
-#       Invoke-RestMethod -Method Post `
-#         -Uri "http://localhost:4000/key/generate" `
-#         -Headers @{ Authorization = "Bearer $admin"; "Content-Type" = "application/json" } `
-#         -Body $body
+       $env:LITELLM_MASTER_KEY = "sk-Ertacdemm1x"
+       litellm --config .\litellm.yaml --port 4000
+       $admin = $env:LITELLM_MASTER_KEY
+       $body  = @{ metadata = @{ purpose = "dev-pro" } } | ConvertTo-Json
+       Invoke-RestMethod -Method Post `
+         -Uri "http://localhost:4000/key/generate" `
+         -Headers @{ Authorization = "Bearer $admin"; "Content-Type" = "application/json" } `
+         -Body $body
 #   The response includes a "virtual_key". Use THAT key in your app (.env NATI_PRO_API_KEY) — not the admin key.

@@ -88,10 +88,16 @@ export async function getModelClient(
         settings.enableProSmartFilesContextMode ||
         settings.enableProLazyEditsMode ||
         settings.enableProWebSearch;
-      const provider = isEngineEnabled
+      const engineUrl = (dyadEngineUrl || "").trim();
+      const gatewayUrl = (dyadGatewayUrl || "").trim();
+      // Only use Engine if explicitly set AND it's distinct from the gateway.
+      // This avoids sending engine-only models (e.g. dyad/turbo) to LiteLLM.
+      const useEngine = Boolean(isEngineEnabled && engineUrl && engineUrl !== gatewayUrl);
+
+      const provider = useEngine
         ? createDyadEngine({
             apiKey: dyadApiKey,
-            baseURL: dyadEngineUrl ?? "https://engine.dyad.sh/v1",
+            baseURL: engineUrl,
             originalProviderId: model.provider,
             dyadOptions: {
               enableLazyEdits:
@@ -108,27 +114,31 @@ export async function getModelClient(
         : createOpenAICompatible({
             name: "dyad-gateway",
             apiKey: dyadApiKey,
-            baseURL: dyadGatewayUrl ?? "https://llm-gateway.dyad.sh/v1",
+            baseURL: gatewayUrl || "https://litellm-production-6380.up.railway.app/v1",
           });
 
       logger.info(
         `\x1b[1;97;44m Using Nati Pro API key for model: ${model.name}. engine_enabled=${isEngineEnabled} \x1b[0m`,
       );
-      if (isEngineEnabled) {
+      if (useEngine) {
         logger.info(
-          `\x1b[1;30;42m Using Nati Pro engine: ${dyadEngineUrl ?? "<prod>"} \x1b[0m`,
+          `\x1b[1;30;42m Using Nati Pro engine: ${engineUrl || "<unset>"} \x1b[0m`,
         );
       } else {
         logger.info(
-          `\x1b[1;30;43m Using Nati Pro gateway: ${dyadGatewayUrl ?? "<prod>"} \x1b[0m`,
+          `\x1b[1;30;43m Using Nati Pro gateway: ${gatewayUrl || "<prod>"} \x1b[0m`,
         );
       }
       // Do not use free variant (for openrouter).
-      const modelName = model.name.split(":free")[0];
+      let modelName = model.name.split(":free")[0];
+      // If we're NOT using Engine, avoid engine-only aliases like "dyad/*"
+      if (!useEngine && modelName.startsWith("dyad/")) {
+        modelName = "gpt-4o-mini"; // Default supported by litellm.yaml
+      }
       const autoModelClient = {
         model: provider(
           `${providerConfig.gatewayPrefix || ""}${modelName}`,
-          isEngineEnabled
+          useEngine
             ? {
                 files,
               }
@@ -139,7 +149,7 @@ export async function getModelClient(
 
       return {
         modelClient: autoModelClient,
-        isEngineEnabled,
+        isEngineEnabled: useEngine,
       };
     } else {
       logger.warn(

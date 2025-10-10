@@ -14,7 +14,7 @@ const CUSTOM_TAG_NAMES = [
   "dyad-edit",
   "dyad-codebase-context",
   "think",
-  "nati-command",
+  "dyad-command",
 ];
 export const useCopyToClipboard = () => {
   const [copied, setCopied] = useState(false);
@@ -184,7 +184,7 @@ export const useCopyToClipboard = () => {
       }
 
       case "dyad-chat-summary":
-      case "nati-command":
+      case "dyad-command":
         // Don't include these in copy
         return "";
 

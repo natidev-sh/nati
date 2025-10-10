@@ -1,6 +1,6 @@
 I will intentionally add an error
 
-<dyad-write path="src/pages/Index.tsx" description="intentionally add an error">
+<nati-write path="src/pages/Index.tsx" description="intentionally add an error">
 // Update this page (the content is just a fallback if you fail to update the page)
 
 import { MadeWithNati } from "@/components/made-with-nati";
@@ -22,4 +22,4 @@ Start building your amazing project here!
 };
 
 export default Index;
-</dyad-write>
+<dyad-write>

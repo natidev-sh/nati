@@ -5,6 +5,8 @@ import {
   HelpCircle,
   Store,
   BookOpen,
+  Terminal,
+  Blocks,
 } from "lucide-react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useSidebar } from "@/components/ui/sidebar"; // import useSidebar hook
@@ -42,19 +44,24 @@ const items = [
     icon: Inbox,
   },
   {
-    title: "Settings",
-    to: "/settings",
-    icon: Settings,
+    title: "Prompt Library",
+    to: "/library",
+    icon: Terminal,
   },
   {
-    title: "Library",
-    to: "/library",
+    title: "Docs",
+    to: "/docs",
     icon: BookOpen,
   },
   {
-    title: "Hub",
+    title: "Templates & Plugins",
     to: "/hub",
-    icon: Store,
+    icon: Blocks,
+  },
+  {
+    title: "Settings",
+    to: "/settings",
+    icon: Settings,
   },
 ];
 
@@ -215,7 +222,7 @@ function AppIcons({
                       } else if (item.title === "Settings") {
                         // Do not auto-expand on Settings hover to avoid opening menubars
                         onHoverChange("no-hover");
-                      } else if (item.title === "Library" || item.title === "Hub") {
+                      } else if (item.title === "Library" || item.title === "Hub" || item.title === "Docs") {
                         // Do not trigger hover-based expansion for Library or Hub
                         onHoverChange("no-hover");
                       }

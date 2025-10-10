@@ -131,7 +131,7 @@ function preprocessUnclosedTags(content: string): {
     "dyad-web-search",
     "dyad-read",
     "think",
-    "nati-command",
+    "dyad-command",
     "dyad-mcp-tool-call",
     "dyad-mcp-tool-result",
   ];
@@ -203,7 +203,7 @@ function parseCustomTags(content: string): ContentPiece[] {
     "dyad-web-search",
     "dyad-read",
     "think",
-    "nati-command",
+    "dyad-command",
     "dyad-mcp-tool-call",
     "dyad-mcp-tool-result",
   ];
@@ -497,8 +497,8 @@ function renderCustomTag(
       // Don't render anything for dyad-chat-summary
       return null;
 
-    case "nati-command":
-      // Don't render anything for nati-command
+    case "dyad-command":
+      // Don't render anything for dyad-command
       return null;
 
     default:

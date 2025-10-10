@@ -76,10 +76,10 @@ export function ProviderSettingsPage({ provider }: ProviderSettingsPageProps) {
 
   // Use fetched data (or defaults for Dyad)
   const providerDisplayName = isDyad
-    ? "Dyad"
+    ? "Nati"
     : (providerData?.name ?? "Unknown Provider");
   const providerWebsiteUrl = isDyad
-    ? "https://academy.dyad.sh/settings"
+    ? "https://nati-five.vercel.app/dashboard"
     : providerData?.websiteUrl;
   const hasFreeTier = isDyad ? false : providerData?.hasFreeTier;
   const envVarName = isDyad ? undefined : providerData?.envVarName;

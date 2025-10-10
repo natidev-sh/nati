@@ -8,8 +8,20 @@ import { TemplateCard } from "@/components/TemplateCard";
 import { CreateAppDialog } from "@/components/CreateAppDialog";
 import { NeonConnector } from "@/components/NeonConnector";
 import { HubPromptDetails, HubPrompt } from "@/components/HubPromptDetails";
+import { HubPluginDetails, HubPlugin } from "@/components/HubPluginDetails";
 import { usePrompts } from "@/hooks/usePrompts";
 import { usePromptFavorites } from "@/hooks/usePromptFavorites";
+// Build-time safe asset URLs (assets live outside src)
+const ss1 = new URL("../../assets/resend-brand-assets/resend-screenshot-1.png", import.meta.url).toString();
+const ss2 = new URL("../../assets/resend-brand-assets/resend-screenshot-2.png", import.meta.url).toString();
+const ss3 = new URL("../../assets/resend-brand-assets/resend-screenshot-3.png", import.meta.url).toString();
+const resendIconBlack = new URL("../../assets/resend-brand-assets/resend-icon-black.svg", import.meta.url).toString();
+const resendIconWhite = new URL("../../assets/resend-brand-assets/resend-icon-white.svg", import.meta.url).toString();
+// Stripe screenshots (assets)
+const stripeSS1 = new URL("../../assets/stripe-brand-assets/ss1.png", import.meta.url).toString();
+const stripeSS2 = new URL("../../assets/stripe-brand-assets/ss2.png", import.meta.url).toString();
+const stripeSS3 = new URL("../../assets/stripe-brand-assets/ss3.png", import.meta.url).toString();
+const stripeIconJpeg = new URL("../../assets/stripe-brand-assets/Stripe_Icon_9.jpeg", import.meta.url).toString();
 
 const HubPage: React.FC = () => {
   const router = useRouter();
@@ -26,6 +38,8 @@ const HubPage: React.FC = () => {
   const [activePromptCategory, setActivePromptCategory] = useState<string>("all");
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedPrompt, setSelectedPrompt] = useState<HubPrompt | null>(null);
+  const [pluginOpen, setPluginOpen] = useState(false);
+  const [selectedPlugin, setSelectedPlugin] = useState<HubPlugin | null>(null);
 
   const handleTemplateSelect = (templateId: string) => {
     updateSettings({ selectedTemplateId: templateId });
@@ -203,25 +217,20 @@ const HubPage: React.FC = () => {
                     )}
                   </section>
                   <section className="p-5 md:p-6 rounded-2xl glass-surface border shadow-sm">
-                    <header className="mb-4">
-                      <h2 className="text-2xl font-semibold">Community templates</h2>
-                      <p className="text-sm text-muted-foreground">Open-source contributions from the community.</p>
-                    </header>
-                    {communityTemplates.length ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                        {communityTemplates.map((template) => (
-                          <TemplateCard
-                            key={template.id}
-                            template={template}
-                            isSelected={template.id === selectedTemplateId}
-                            onSelect={handleTemplateSelect}
-                            onCreateApp={handleCreateApp}
-                          />
-                        ))}
+                    <header className="mb-4 flex items-center justify-between">
+                      <div>
+                        <h2 className="text-2xl font-semibold">Community templates</h2>
+                        <p className="text-sm text-muted-foreground">Open-source contributions from the community.</p>
                       </div>
-                    ) : (
-                      <EmptyState label={query ? "No community templates match your search" : "No community templates"} />
-                    )}
+                      <span className="text-xs px-2 py-1 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30">Coming soon</span>
+                    </header>
+                    <div className="relative overflow-hidden rounded-2xl border shadow-sm">
+                      <div className="absolute inset-0 bg-gradient-to-br from-amber-400/10 via-fuchsia-400/10 to-indigo-400/10 pointer-events-none" />
+                      <div className="relative p-6 sm:p-8">
+                        <h3 className="text-lg font-semibold mb-1">A shared gallery for the community</h3>
+                        <p className="text-sm text-muted-foreground">Publish and discover open-source templates made by fellow builders. Star your favorites and scaffold in one click.</p>
+                      </div>
+                    </div>
                   </section>
                 </>
               ) : (
@@ -321,7 +330,7 @@ const HubPage: React.FC = () => {
                   <h2 className="text-2xl font-semibold">Plugins</h2>
                   <p className="text-sm text-muted-foreground">Extend Nati with integrations and automations.</p>
                 </div>
-                <span className="text-xs px-2 py-1 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30">Coming soon</span>
+                {/* Coming soon badge removed per request */}
               </header>
 
               <div className="relative overflow-hidden rounded-2xl border shadow-sm">
@@ -345,9 +354,80 @@ const HubPage: React.FC = () => {
                   </ul>
 
                   <div className="flex items-center gap-3">
-                    <Button size="sm" disabled className="opacity-70 cursor-not-allowed">Browse Plugins</Button>
-                    <span className="text-xs text-muted-foreground">Launching soon — request early access in Settings</span>
                   </div>
+                </div>
+              </div>
+              {/* Featured plugin(s) */}
+              <div className="mt-5">
+                <div className="text-sm mb-2 opacity-80">Featured</div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    className="text-left p-4 rounded-xl border glass-surface glass-hover"
+                    onClick={() => {
+                      setSelectedPlugin({
+                        id: "resend",
+                        name: "Resend",
+                        tagline: "Transactional emails made delightful",
+                        description:
+                          "Send reliable transactional emails with a modern API and dashboard. Configure an API key and default from address, then use helpers to send notifications from your apps.",
+                        docsUrl: "https://resend.com/docs/introduction",
+                        images: [ss1, ss2, ss3],
+                      });
+                      setPluginOpen(true);
+                    }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="h-9 w-9 rounded-lg bg-white/70 dark:bg-white/10 border flex items-center justify-center overflow-hidden">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={resendIconBlack} alt="Resend" className="h-5 w-5 dark:hidden" />
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={resendIconWhite} alt="Resend" className="h-5 w-5 hidden dark:block" />
+                      </div>
+                      <div>
+                        <div className="font-semibold">Resend</div>
+                        <div className="text-xs text-muted-foreground">Email API • Preview</div>
+                      </div>
+                    </div>
+                    <div
+                      className="mt-3 rounded-lg border overflow-hidden relative"
+                      style={{ backgroundImage: `url(${ss1})`, backgroundSize: 'cover', backgroundPosition: 'center', height: '120px' }}
+                    >
+                      <div className="absolute bottom-1 right-1 text-[10px] px-1.5 py-0.5 rounded bg-black/50 text-white">Thumbnail</div>
+                    </div>
+                    <div className="mt-2 text-xs text-muted-foreground">Click to view details & screenshots</div>
+                  </button>
+                  {/* Stripe preview card */}
+                  <button
+                    className="text-left p-4 rounded-xl border glass-surface glass-hover"
+                    onClick={() => {
+                      setSelectedPlugin({
+                        id: "stripe",
+                        name: "Stripe",
+                        tagline: "Payments, subscriptions, and more",
+                        description:
+                          "Accept payments with Checkout or build custom flows using Payment Intents. Configure publishable/secret keys and a webhook secret, then use helpers to start sessions.",
+                        docsUrl: "https://docs.stripe.com/get-started",
+                        images: [stripeSS1, stripeSS2, stripeSS3],
+                      });
+                      setPluginOpen(true);
+                    }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="h-9 w-9 rounded-lg border overflow-hidden bg-white/70 dark:bg-white/10 flex items-center justify-center">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={stripeIconJpeg} alt="Stripe" className="h-full w-full object-cover" />
+                      </div>
+                      <div>
+                        <div className="font-semibold">Stripe</div>
+                        <div className="text-xs text-muted-foreground">Checkout • Payments</div>
+                      </div>
+                    </div>
+                    <div
+                      className="mt-3 rounded-lg border overflow-hidden relative"
+                      style={{ backgroundImage: `url(${stripeSS1})`, backgroundSize: 'cover', backgroundPosition: 'center', height: '120px' }}
+                    />
+                    <div className="mt-2 text-xs text-muted-foreground">Click to view details & setup</div>
+                  </button>
                 </div>
               </div>
             </section>
@@ -393,6 +473,7 @@ const HubPage: React.FC = () => {
           setDetailsOpen(false);
         }}
       />
+      <HubPluginDetails open={pluginOpen} onOpenChange={setPluginOpen} plugin={selectedPlugin} />
     </div>
   );
 };

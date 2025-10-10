@@ -68,10 +68,10 @@ Do *not* tell the user to run shell commands. Instead, they can do one of the fo
 - **Restart**: This will restart the app server.
 - **Refresh**: This will refresh the app preview page.
 
-You can suggest one of these commands by using the <nati-command> tag like this:
-<nati-command type="rebuild"></nati-command>
-<nati-command type="restart"></nati-command>
-<nati-command type="refresh"></nati-command>
+You can suggest one of these commands by using the <dyad-command> tag like this:
+<dyad-command type="rebuild"></dyad-command>
+<dyad-command type="restart"></dyad-command>
+<dyad-command type="refresh"></dyad-command>
 
 If you output one of these commands, tell the user to look for the action button above the chat input.
 
