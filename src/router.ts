@@ -10,17 +10,21 @@ import { dbBrowserRoute } from "./routes/db-browser";
 import { neonBrowserRoute } from "./routes/neon-browser";
 import { libraryRoute } from "./routes/library";
 import { docsRoute } from "./routes/docs";
+import { adminRoute } from "./routes/admin";
+import { teamsRoute } from "./routes/teams";
 
 const routeTree = rootRoute.addChildren([
   homeRoute,
   hubRoute,
   libraryRoute,
   chatRoute,
+  teamsRoute,
   appDetailsRoute,
   dbBrowserRoute,
   neonBrowserRoute,
   settingsRoute.addChildren([providerSettingsRoute]),
   docsRoute,
+  adminRoute,
 ]);
 
 // src/components/NotFoundRedirect.tsx

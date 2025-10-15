@@ -18,10 +18,11 @@ import {
 import { formatDistanceToNow, format } from "date-fns";
 import { useVersions } from "@/hooks/useVersions";
 import { useAtomValue, useSetAtom } from "jotai";
-import { selectedAppIdAtom } from "@/atoms/appAtoms";
+import { selectedAppIdAtom, previewModeAtom } from "@/atoms/appAtoms";
 import { isPreviewOpenAtom, selectedFileAtom } from "@/atoms/viewAtoms";
 import { useMemo, useEffect, useState } from "react";
 import { Files, FileCode2, AlertTriangle } from "lucide-react";
+import { showOpened } from "@/lib/toast";
 import { ChatImageLightBox } from "./ChatImageLightBox";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "../ui/dialog";
@@ -48,6 +49,7 @@ const ChatMessage = ({ message, isLastMessage, prevAssistantCommit, nextAssistan
   //handle copy chat
   const { copyMessageContent, copied } = useCopyToClipboard();
   const setPreviewOpen = useSetAtom(isPreviewOpenAtom);
+  const setPreviewMode = useSetAtom(previewModeAtom);
   const setSelectedFile = useSetAtom(selectedFileAtom);
   const handleCopyFormatted = async () => {
     await copyMessageContent(message.content);
@@ -106,7 +108,11 @@ const ChatMessage = ({ message, isLastMessage, prevAssistantCommit, nextAssistan
   const openFileInPreview = (path: string) => {
     if (!path) return;
     setSelectedFile({ path });
+    // Ensure the main panel is in Code view
+    try { setPreviewMode("code" as any); } catch {}
     setPreviewOpen(true);
+    try { window.dispatchEvent(new CustomEvent("filetree:focus", { detail: { path } })); } catch {}
+    try { showOpened(path, "file", { source: "chat" }); } catch {}
   };
 
   // Parse inline dyad-attachment tags from message content
@@ -169,6 +175,8 @@ const ChatMessage = ({ message, isLastMessage, prevAssistantCommit, nextAssistan
               onClick={() => openFileInPreview(p.file!)}
               className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-xs font-medium glass-button glass-hover align-baseline cursor-pointer"
               title={p.file}
+              data-mention-path={p.file}
+              role="button"
             >
               <FileCode2 size={14} className="glass-contrast-text" />
               <code className="text-xs">{p.t}</code>
@@ -272,6 +280,31 @@ const ChatMessage = ({ message, isLastMessage, prevAssistantCommit, nextAssistan
                 <div
                   className="prose dark:prose-invert prose-headings:mb-2 prose-p:my-1 prose-pre:my-0 max-w-none break-words"
                   suppressHydrationWarning
+                  onClick={(e) => {
+                    const target = e.target as HTMLElement | null;
+                    if (!target) return;
+                    // Attempt to detect clicks on tokens that start with @
+                    const text = (target.textContent || "").trim();
+                    if (text.startsWith('@') && text.length > 1 && !text.includes(' ')) {
+                      const path = text.slice(1);
+                      openFileInPreview(path);
+                      return;
+                    }
+                    // Fallback: try selection word under cursor
+                    const sel = window.getSelection?.();
+                    const t = sel?.anchorNode?.textContent || "";
+                    const off = sel?.anchorOffset ?? -1;
+                    if (t && off >= 0) {
+                      // expand to word boundaries
+                      let s = off, e2 = off;
+                      while (s > 0 && !/\s/.test(t[s-1])) s--;
+                      while (e2 < t.length && !/\s/.test(t[e2])) e2++;
+                      const word = t.slice(s, e2);
+                      if (word.startsWith('@') && word.length > 1) {
+                        openFileInPreview(word.slice(1));
+                      }
+                    }
+                  }}
                 >
                   {/* Message content first */}
                   {message.role === "assistant"

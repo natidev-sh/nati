@@ -1,7 +1,7 @@
 {
   "name": "nati",
   "productName": "Nati",
-  "version": "0.2.3",
+  "version": "0.2.6",
   "description": "Free, local, open-source AI app builder",
   "main": ".vite/build/main.js",
   "repository": {
@@ -121,6 +121,7 @@
     "@radix-ui/react-toggle-group": "^1.1.3",
     "@radix-ui/react-tooltip": "^1.1.8",
     "@rollup/plugin-commonjs": "^28.0.3",
+    "@supabase/supabase-js": "^2.75.0",
     "@tailwindcss/typography": "^0.5.16",
     "@tailwindcss/vite": "^4.1.3",
     "@tanstack/react-query": "^5.75.5",

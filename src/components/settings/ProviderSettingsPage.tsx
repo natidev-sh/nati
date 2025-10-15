@@ -79,7 +79,7 @@ export function ProviderSettingsPage({ provider }: ProviderSettingsPageProps) {
     ? "Nati"
     : (providerData?.name ?? "Unknown Provider");
   const providerWebsiteUrl = isDyad
-    ? "https://nati-five.vercel.app/dashboard"
+    ? "https://natiweb.vercel.app/dashboard"
     : providerData?.websiteUrl;
   const hasFreeTier = isDyad ? false : providerData?.hasFreeTier;
   const envVarName = isDyad ? undefined : providerData?.envVarName;

@@ -157,6 +157,20 @@ export const NeonSchema = z.object({
 });
 export type Neon = z.infer<typeof NeonSchema>;
 
+export const NatiUserSchema = z.object({
+  id: z.string(),
+  email: z.string(),
+  name: z.string().optional(),
+  avatar: z.string().optional(),
+  isPro: z.boolean().optional(),
+  isAdmin: z.boolean().optional(),
+  accessToken: SecretSchema.optional(),
+  refreshToken: SecretSchema.optional(),
+  expiresIn: z.number().optional(),
+  tokenTimestamp: z.number().optional(),
+});
+export type NatiUser = z.infer<typeof NatiUserSchema>;
+
 export const ExperimentsSchema = z.object({
   // Deprecated
   enableSupabaseIntegration: z.boolean().describe("DEPRECATED").optional(),
@@ -215,6 +229,7 @@ export const UserSettingsSchema = z.object({
   vercelAccessToken: SecretSchema.optional(),
   supabase: SupabaseSchema.optional(),
   neon: NeonSchema.optional(),
+  natiUser: NatiUserSchema.optional(),
   autoApproveChanges: z.boolean().optional(),
   telemetryConsent: z.enum(["opted_in", "opted_out", "unset"]).optional(),
   telemetryUserId: z.string().optional(),

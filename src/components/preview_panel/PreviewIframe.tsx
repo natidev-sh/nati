@@ -126,6 +126,69 @@ const ErrorBanner = ({ error, onDismiss, onAIFix }: ErrorBannerProps) => {
   );
 };
 
+// Progressive loading overlay used while server / preview is starting
+const LoadingOverlay = ({
+  title = "Starting your app server...",
+  stages = [
+    "Booting terminal",
+    "Checking Node & tooling",
+    "Installing dependencies (if needed)",
+    "Building app",
+    "Starting dev server",
+    "Waiting for preview to be ready",
+  ],
+  tickMs = 900,
+}: {
+  title?: string;
+  stages?: string[];
+  tickMs?: number;
+}) => {
+  const [idx, setIdx] = useState(0);
+  useEffect(() => {
+    if (idx >= stages.length - 1) return;
+    const t = setTimeout(() => setIdx((v) => Math.min(v + 1, stages.length - 1)), tickMs);
+    return () => clearTimeout(t);
+  }, [idx, stages.length, tickMs]);
+
+  return (
+    <div className="absolute inset-0 flex items-center justify-center">
+      <div className="relative w-full h-full">
+        <div className="absolute inset-0 bg-gradient-to-br from-zinc-50 via-white to-zinc-100 dark:from-zinc-950 dark:via-zinc-950 dark:to-black" />
+        <div className="absolute inset-0 backdrop-blur-[1.5px]" />
+        <div className="relative h-full flex flex-col items-center justify-center px-6">
+          <div className="w-full max-w-md rounded-2xl border glass-surface shadow-sm p-5 ring-1 ring-white/20 dark:ring-white/10">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="h-8 w-8 rounded-xl border flex items-center justify-center bg-white/70 dark:bg-white/10">
+                <Loader2 className="h-4 w-4 animate-spin" />
+              </div>
+              <div className="text-sm glass-contrast-text font-medium">{title}</div>
+            </div>
+
+            <div className="relative h-1.5 w-full rounded-full bg-black/5 dark:bg-white/10 overflow-hidden mb-3">
+              <div
+                className="absolute left-0 top-0 h-full bg-gradient-to-r from-purple-500 via-fuchsia-500 to-indigo-500 transition-[width] duration-500"
+                style={{ width: `${Math.round(((idx + 1) / stages.length) * 100)}%` }}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              {stages.map((s, i) => (
+                <div key={s} className={`text-xs flex items-center gap-2 ${i <= idx ? "text-foreground" : "text-muted-foreground"}`}>
+                  <span className={`inline-block h-1.5 w-1.5 rounded-full ${i < idx ? "bg-emerald-500" : i === idx ? "bg-amber-500 animate-pulse" : "bg-black/20 dark:bg-white/20"}`} />
+                  <span className="truncate">{s}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="mt-4 text-[11px] text-muted-foreground">
+            Tip: You can continue editing files while the server starts.
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Preview iframe component
 export const PreviewIframe = ({ loading }: { loading: boolean }) => {
   const selectedAppId = useAtomValue(selectedAppIdAtom);
@@ -391,16 +454,7 @@ export const PreviewIframe = ({ loading }: { loading: boolean }) => {
   if (loading) {
     return (
       <div className="flex flex-col h-full relative">
-        <div className="absolute inset-0 flex flex-col items-center justify-center space-y-4 bg-gray-50 dark:bg-gray-950">
-          <div className="relative w-5 h-5 animate-spin">
-            <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-primary rounded-full"></div>
-            <div className="absolute bottom-0 left-0 w-2 h-2 bg-primary rounded-full opacity-80"></div>
-            <div className="absolute bottom-0 right-0 w-2 h-2 bg-primary rounded-full opacity-60"></div>
-          </div>
-          <p className="text-gray-600 dark:text-gray-300">
-            Preparing app preview...
-          </p>
-        </div>
+        <LoadingOverlay title="Preparing app preview..." />
       </div>
     );
   }
@@ -552,12 +606,7 @@ export const PreviewIframe = ({ loading }: { loading: boolean }) => {
         />
 
         {!appUrl ? (
-          <div className="absolute inset-0 flex flex-col items-center justify-center space-y-4 bg-gray-50 dark:bg-gray-950">
-            <Loader2 className="w-8 h-8 animate-spin text-gray-400 dark:text-gray-500" />
-            <p className="text-gray-600 dark:text-gray-300">
-              Starting your app server...
-            </p>
-          </div>
+          <LoadingOverlay title="Starting your app server..." />
         ) : (
           <iframe
             sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-orientation-lock allow-pointer-lock allow-presentation allow-downloads"

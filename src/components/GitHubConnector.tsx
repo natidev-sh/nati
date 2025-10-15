@@ -6,6 +6,8 @@ import {
   Check,
   AlertTriangle,
   ChevronRight,
+  Plus,
+  Link2,
 } from "lucide-react";
 import { IpcClient } from "@/ipc/ipc_client";
 import { useSettings } from "@/hooks/useSettings";
@@ -138,30 +140,30 @@ function ConnectedGitHubConnector({
 
   return (
     <div className="w-full" data-testid="github-connected-repo">
-      <div className="flex items-center gap-2 mb-1">
+      <div className="flex items-center gap-2 mb-2">
         <Github className="h-4 w-4 text-zinc-700 dark:text-zinc-300" />
         <p className="text-sm text-zinc-700 dark:text-zinc-300 m-0">
           Connected to GitHub Repo
         </p>
       </div>
-      <a
+      <div className="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-lg glass-surface/80 ring-1 ring-white/10 dark:ring-white/10 text-blue-700 dark:text-blue-300">
+        <a
         onClick={(e) => {
           e.preventDefault();
           IpcClient.getInstance().openExternalUrl(
             `https://github.com/${app.githubOrg}/${app.githubRepo}`,
           );
         }}
-        className="inline-block cursor-pointer text-blue-600 dark:text-blue-400 hover:underline font-medium"
+        className="inline-block cursor-pointer hover:underline font-medium"
         target="_blank"
         rel="noopener noreferrer"
       >
         {app.githubOrg}/{app.githubRepo}
-      </a>
-      {app.githubBranch && (
-        <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mt-1">
-          Branch: <span className="font-mono">{app.githubBranch}</span>
-        </p>
-      )}
+        </a>
+        {app.githubBranch && (
+          <span className="text-[11px] opacity-70">• {app.githubBranch}</span>
+        )}
+      </div>
       <div className="mt-3 flex flex-col sm:flex-row gap-2">
         <Button onClick={() => handleSyncToGithub(false)} disabled={isSyncing} className="sm:min-w-[150px]">
           {isSyncing ? (
@@ -226,7 +228,7 @@ function ConnectedGitHubConnector({
               onClick={() => setShowForceDialog(true)}
               variant="outline"
               size="sm"
-              className="mt-2 text-orange-700 dark:text-orange-300 border-orange-300 dark:border-orange-700 hover:bg-orange-50 dark:hover:bg-orange-900/10"
+              className="mt-2 text-orange-700 dark:text-orange-300 border-orange-300 dark:border-orange-700 hover:bg-orange-50 dark:hover:bg-orange-900/10 rounded-lg"
             >
               <AlertTriangle className="h-4 w-4 mr-2" />
               Force Push (Dangerous)
@@ -565,7 +567,7 @@ function UnconnectedGitHubConnector({
       <div className="mt-1 w-full" data-testid="github-unconnected-repo">
         <Button
           onClick={handleConnectToGithub}
-          className="cursor-pointer w-full py-5 flex justify-center items-center gap-2 rounded-xl shadow-sm glass-hover"
+          className="cursor-pointer w-full py-5 flex justify-center items-center gap-2 rounded-xl shadow-sm glass-surface glass-hover ring-1 ring-white/10 dark:ring-white/10"
           size="lg"
           variant="outline"
           disabled={isConnectingToGithub || !appId} // Also disable if appId is null
@@ -597,7 +599,7 @@ function UnconnectedGitHubConnector({
         </Button>
         {/* GitHub Connection Status/Instructions */}
         {(githubUserCode || githubStatusMessage || githubError) && (
-          <div className="mt-6 p-4 rounded-2xl glass-surface border shadow-sm border-white/60 dark:border-white/10">
+          <div className="mt-6 p-4 rounded-2xl glass-surface/80 ring-1 ring-white/10 dark:ring-white/10 shadow-sm">
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-2">
                 <Github className="h-4 w-4 text-zinc-700 dark:text-zinc-300" />
@@ -624,7 +626,7 @@ function UnconnectedGitHubConnector({
                         type="button"
                         variant="outline"
                         size="sm"
-                        className="h-7 px-2 rounded-lg cursor-pointer"
+                        className="h-7 px-2 rounded-lg cursor-pointer ring-1 ring-white/10 dark:ring-white/10"
                         onClick={() => IpcClient.getInstance().openExternalUrl(githubVerificationUri)}
                       >
                         https://github.com/login/device
@@ -693,15 +695,16 @@ function UnconnectedGitHubConnector({
       <button
         type="button"
         onClick={!isExpanded ? () => setIsExpanded(true) : undefined}
-        className={`w-full p-4 text-left transition-colors rounded-md flex items-center justify-between ${
+        aria-expanded={isExpanded}
+        className={`w-full p-4 text-left rounded-xl flex items-center justify-between transition-colors outline-none ${
           !isExpanded
-            ? "cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50"
-            : ""
+            ? "glass-surface glass-hover ring-1 ring-white/10 dark:ring-white/10 cursor-pointer focus-visible:ring-2 focus-visible:ring-white/40 dark:focus-visible:ring-white/20"
+            : "glass-surface/80 ring-1 ring-white/10 dark:ring-white/10"
         }`}
       >
-        <span className="font-medium">Set up your GitHub repo</span>
+        <span className="font-medium glass-contrast-text">Set up your GitHub repo</span>
         {isExpanded ? undefined : (
-          <ChevronRight className="h-4 w-4 text-gray-500" />
+          <ChevronRight className="h-4 w-4 opacity-60" />
         )}
       </button>
 
@@ -712,16 +715,15 @@ function UnconnectedGitHubConnector({
         }`}
       >
         <div className="p-4 pt-0 space-y-4">
-          {/* Mode Selection */}
+          {/* Mode Selection - Segmented Control */}
           <div>
-            <div className="flex rounded-md border border-gray-200 dark:border-gray-700">
-              <Button
+            <div className="inline-flex w-full rounded-xl glass-surface/80 ring-1 ring-white/10 dark:ring-white/10 p-1">
+              <button
                 type="button"
-                variant={repoSetupMode === "create" ? "default" : "ghost"}
-                className={`flex-1 rounded-none rounded-l-md border-0 ${
+                className={`flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg transition-colors outline-none ${
                   repoSetupMode === "create"
-                    ? "bg-primary text-primary-foreground"
-                    : "hover:bg-gray-50 dark:hover:bg-gray-800"
+                    ? "bg-white/70 dark:bg-white/10 text-zinc-900 dark:text-white shadow-sm"
+                    : "text-zinc-700 dark:text-zinc-300 hover:bg-white/40 dark:hover:bg-white/5"
                 }`}
                 onClick={() => {
                   setRepoSetupMode("create");
@@ -729,15 +731,15 @@ function UnconnectedGitHubConnector({
                   setCreateRepoSuccess(false);
                 }}
               >
-                Create new repo
-              </Button>
-              <Button
+                <Plus className="h-4 w-4" />
+                <span className="text-sm">Create new repo</span>
+              </button>
+              <button
                 type="button"
-                variant={repoSetupMode === "existing" ? "default" : "ghost"}
-                className={`flex-1 rounded-none rounded-r-md border-0 border-l border-gray-200 dark:border-gray-700 ${
+                className={`flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg transition-colors outline-none ${
                   repoSetupMode === "existing"
-                    ? "bg-primary text-primary-foreground"
-                    : "hover:bg-gray-50 dark:hover:bg-gray-800"
+                    ? "bg-white/70 dark:bg-white/10 text-zinc-900 dark:text-white shadow-sm"
+                    : "text-zinc-700 dark:text-zinc-300 hover:bg-white/40 dark:hover:bg-white/5"
                 }`}
                 onClick={() => {
                   setRepoSetupMode("existing");
@@ -745,8 +747,9 @@ function UnconnectedGitHubConnector({
                   setCreateRepoSuccess(false);
                 }}
               >
-                Connect to existing repo
-              </Button>
+                <Link2 className="h-4 w-4" />
+                <span className="text-sm">Connect existing repo</span>
+              </button>
             </div>
           </div>
 

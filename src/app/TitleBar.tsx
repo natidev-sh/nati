@@ -21,6 +21,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { PreviewHeader } from "@/components/preview_panel/PreviewHeader";
+import { NatiAuthButton } from "@/components/NatiAuthButton";
 
 export const TitleBar = () => {
   const [selectedAppId] = useAtom(selectedAppIdAtom);
@@ -105,6 +106,11 @@ export const TitleBar = () => {
             <PreviewHeader />
           </div>
         )}
+
+        {/* User Authentication */}
+        <div className="no-app-region-drag mr-2">
+          <NatiAuthButton />
+        </div>
 
         {showWindowControls && <WindowsControls />}
       </div>

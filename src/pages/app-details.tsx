@@ -9,7 +9,7 @@ import { IpcClient } from "@/ipc/ipc_client";
 import { useLoadApps } from "@/hooks/useLoadApps";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, MoreVertical, MessageCircle, Pencil, Folder, Trash2, Copy, Calendar, Clock } from "lucide-react";
+import { ArrowLeft, MoreVertical, MessageCircle, Pencil, Folder, Trash2, Copy, Calendar, Clock, Layers, Plug, Smartphone, TrendingUp } from "lucide-react";
 import {
   Popover,
   PopoverContent,
@@ -586,85 +586,88 @@ export default function AppDetailsPage() {
 
   return (
     <div
-      className="relative min-h-screen p-3 sm:p-4 w-full bg-gradient-to-b from-zinc-100 to-white dark:from-zinc-900 dark:via-zinc-950 dark:to-black"
+      className="relative min-h-screen p-4 sm:p-6 lg:p-8 w-full bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-zinc-100 via-zinc-50 to-white dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950"
       data-testid="app-details-page"
     >
       <Button
         onClick={() => router.history.back()}
-        variant="outline"
+        variant="ghost"
         size="sm"
-        className="absolute top-4 left-4 flex items-center gap-1 bg-(--background-lightest) py-2"
+        className="absolute top-6 left-6 flex items-center gap-2 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors duration-200"
       >
-        <ArrowLeft className="h-3 w-4" />
-        Back
+        <ArrowLeft className="h-4 w-4" />
+        <span className="text-sm font-medium">Back</span>
       </Button>
 
-      <div className="w-full max-w-6xl mx-auto mt-14 sm:mt-16">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4">
+      <div className="w-full max-w-7xl mx-auto mt-14 sm:mt-16">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-7">
           {/* Left column: title/menu, metadata chips, sticky CTA */}
           <div className="lg:col-span-5">
-            <div className="relative p-4 sm:p-5 rounded-2xl glass-surface border shadow-sm">
-              <div className="flex items-start gap-2">
-                <h2 className="text-xl sm:text-2xl font-bold glass-contrast-text flex-1 truncate">{selectedApp.name}</h2>
+            <div className="relative p-8 rounded-2xl bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border border-zinc-200/50 dark:border-zinc-800/50 shadow-[0_1px_3px_rgba(0,0,0,0.05)] dark:shadow-[0_1px_3px_rgba(0,0,0,0.3)]">
+              <div className="flex items-start gap-3">
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-2xl sm:text-3xl font-semibold text-zinc-900 dark:text-zinc-100 truncate tracking-tight">{selectedApp.name}</h2>
+                  <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1.5">Application Details</p>
+                </div>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="p-1 h-7 w-7 hover:bg-white/70 dark:hover:bg-white/10"
+                  className="p-2 h-9 w-9 rounded-lg text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                   onClick={handleOpenRenameDialog}
                   data-testid="app-details-rename-app-button"
                   title="Rename app"
                 >
-                  <Pencil className="h-3.5 w-3.5" />
+                  <Pencil className="h-4 w-4" />
                 </Button>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-7 w-7 p-0 hover:bg-white/70 dark:hover:bg-white/10"
+                      className="h-9 w-9 p-0 rounded-lg text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                       data-testid="app-details-more-options-button"
                       title="More options"
                     >
-                      <MoreVertical className="h-4 w-4" />
+                      <MoreVertical className="h-5 w-5" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-44 p-2 glass-surface" align="end">
+                  <PopoverContent className="w-48 p-1.5 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl border border-zinc-200/50 dark:border-zinc-800/50 rounded-xl shadow-lg" align="end">
                     <div className="flex flex-col space-y-0.5">
-                      <Button onClick={handleOpenRenameFolderDialog} variant="ghost" size="sm" className="h-8 justify-start text-xs hover:bg-white/70 dark:hover:bg-white/10">Rename folder</Button>
-                      <Button onClick={handleOpenCopyDialog} variant="ghost" size="sm" className="h-8 justify-start text-xs hover:bg-white/70 dark:hover:bg-white/10">Copy app</Button>
-                      <Button onClick={() => setIsDeleteDialogOpen(true)} variant="ghost" size="sm" className="h-8 justify-start text-xs hover:bg-white/70 dark:hover:bg-white/10">Delete</Button>
+                      <Button onClick={handleOpenRenameFolderDialog} variant="ghost" size="sm" className="h-9 justify-start text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors">Rename folder</Button>
+                      <Button onClick={handleOpenCopyDialog} variant="ghost" size="sm" className="h-9 justify-start text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors">Copy app</Button>
+                      <Button onClick={() => setIsDeleteDialogOpen(true)} variant="ghost" size="sm" className="h-9 justify-start text-sm hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg transition-colors text-red-600 dark:text-red-400">Delete</Button>
                     </div>
                   </PopoverContent>
                 </Popover>
               </div>
 
               {/* Action bar */}
-              <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className="mt-8 space-y-2.5">
                 <Button
                   onClick={() => {
                     if (!appId) return;
                     navigate({ to: "/chat" });
                   }}
-                  className="cursor-pointer w-full py-3 sm:py-4 flex justify-center items-center gap-2 glass-surface glass-hover border text-zinc-900 dark:text-white"
+                  className="cursor-pointer w-full h-11 flex justify-center items-center gap-2.5 bg-zinc-900 dark:bg-zinc-100 hover:bg-zinc-800 dark:hover:bg-zinc-200 text-white dark:text-zinc-900 font-medium rounded-xl transition-colors"
                 >
-                  <MessageCircle className="h-4 w-4" />
+                  <MessageCircle className="h-4.5 w-4.5" />
                   Open in Chat
                 </Button>
-                <div className="flex gap-2 flex-col xs:flex-row sm:flex-row">
-                  <Button onClick={handleOpenCopyDialog} variant="outline" className="flex-1 glass-button glass-hover"><Copy className="h-4 w-4 mr-1" />Copy</Button>
-                  <Button onClick={() => setIsDeleteDialogOpen(true)} variant="destructive" className="flex-1 cursor-pointer">
-                    <Trash2 className="h-4 w-4 mr-1" />Delete
+                <div className="flex gap-2.5">
+                  <Button onClick={handleOpenCopyDialog} variant="outline" className="flex-1 h-10 rounded-xl border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900 transition-colors"><Copy className="h-4 w-4 mr-2" />Copy</Button>
+                  <Button onClick={() => setIsDeleteDialogOpen(true)} variant="outline" className="flex-1 h-10 rounded-xl border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors">
+                    <Trash2 className="h-4 w-4 mr-2" />Delete
                   </Button>
                 </div>
               </div>
 
               {/* Metadata section: modern chips with icons */}
               <TooltipProvider>
-                <div className="mt-4 mb-1 space-y-2 text-[12px]">
+                <div className="mt-8 mb-1 space-y-2.5 text-[12px]">
                   {/* Created */}
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <div className="px-3 py-2 rounded-xl glass-surface border cursor-default">
+                      <div className="px-4 py-3 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50 border border-zinc-200/50 dark:border-zinc-800/50 cursor-default">
                         <div className="flex sm:flex-row flex-col sm:items-center items-start gap-1.5">
                           <div className="flex items-center gap-2">
                             <Calendar className="h-3.5 w-3.5 opacity-70" />
@@ -684,7 +687,7 @@ export default function AppDetailsPage() {
                   {/* Updated */}
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <div className="px-3 py-2 rounded-xl glass-surface border cursor-default">
+                      <div className="px-4 py-3 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50 border border-zinc-200/50 dark:border-zinc-800/50 cursor-default">
                         <div className="flex sm:flex-row flex-col sm:items-center items-start gap-1.5">
                           <div className="flex items-center gap-2">
                             <Clock className="h-3.5 w-3.5 opacity-70" />
@@ -704,23 +707,23 @@ export default function AppDetailsPage() {
                   {/* Path */}
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <div className="px-3 py-2 rounded-xl glass-surface border">
+                      <div className="px-4 py-3 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50 border border-zinc-200/50 dark:border-zinc-800/50">
                         <div className="flex items-center gap-2">
                           <span className="text-[11px] uppercase tracking-wide opacity-80">Path</span>
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="ml-auto h-7 px-2 py-0.5 hover:bg-white/70 dark:hover:bg-white/10"
+                            className="ml-auto h-8 px-3 py-1 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                             onClick={() => {
                               navigator.clipboard.writeText(fullAppPath).then(() => showSuccess("Path copied"));
                             }}
                             title="Copy path"
                           >
                             <Copy className="h-3.5 w-3.5" />
-                            <span className="ml-1">Copy</span>
+                            <span className="ml-1.5 text-xs font-medium">Copy</span>
                           </Button>
                         </div>
-                        <div className="mt-1.5 rounded-md bg-black/5 dark:bg-white/5 px-2 py-1.5 font-mono text-[11px] break-all whitespace-pre-wrap">
+                        <div className="mt-2 rounded-lg bg-zinc-100/50 dark:bg-zinc-800/50 px-3 py-2 font-mono text-[11px] break-all whitespace-pre-wrap border border-zinc-200/50 dark:border-zinc-700/50">
                           {fullAppPath}
                         </div>
                       </div>
@@ -733,12 +736,12 @@ export default function AppDetailsPage() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-7 px-2 py-0.5 hover:bg-white/70 dark:hover:bg-white/10 justify-start w-fit"
+                    className="h-9 px-3 py-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 justify-start w-fit transition-colors text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
                     onClick={() => IpcClient.getInstance().showItemInFolder(fullAppPath)}
                     title="Show in File Explorer"
                   >
-                    <Folder className="h-3.5 w-3.5" />
-                    <span className="ml-1">Show in File Explorer</span>
+                    <Folder className="h-4 w-4" />
+                    <span className="ml-2 text-sm font-medium">Show in File Explorer</span>
                   </Button>
                 </div>
               </TooltipProvider>
@@ -746,12 +749,17 @@ export default function AppDetailsPage() {
           </div>
 
           {/* Right column: Collapsible sections */}
-          <div className="lg:col-span-7 flex flex-col gap-3">
-            <div className="p-3 sm:p-4 rounded-2xl glass-surface border shadow-sm">
+          <div className="lg:col-span-7 flex flex-col gap-5">
+            <div className="p-6 sm:p-8 rounded-2xl bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border border-zinc-200/50 dark:border-zinc-800/50 shadow-[0_1px_3px_rgba(0,0,0,0.05)] dark:shadow-[0_1px_3px_rgba(0,0,0,0.3)]">
               <Accordion type="single" collapsible defaultValue="tech-stack">
-                <AccordionItem value="tech-stack">
-                  <AccordionTrigger className="cursor-pointer">
-                    <div className="text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Tech Stack</div>
+                <AccordionItem value="tech-stack" className="border-b border-zinc-200/50 dark:border-zinc-800/50">
+                  <AccordionTrigger className="cursor-pointer hover:no-underline py-4 group">
+                    <div className="flex items-center gap-3">
+                      <div className="h-9 w-9 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-700 dark:text-zinc-300">
+                        <Layers className="h-4.5 w-4.5" />
+                      </div>
+                      <div className="text-base font-medium text-zinc-900 dark:text-zinc-100">Tech Stack</div>
+                    </div>
                   </AccordionTrigger>
                   <AccordionContent>
                     <div className="space-y-2">
@@ -773,9 +781,14 @@ export default function AppDetailsPage() {
                     </div>
                   </AccordionContent>
                 </AccordionItem>
-                <AccordionItem value="integrations">
-                  <AccordionTrigger className="cursor-pointer">
-                    <div className="text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Integrations</div>
+                <AccordionItem value="integrations" className="border-b border-zinc-200/50 dark:border-zinc-800/50">
+                  <AccordionTrigger className="cursor-pointer hover:no-underline py-4 group">
+                    <div className="flex items-center gap-3">
+                      <div className="h-9 w-9 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-700 dark:text-zinc-300">
+                        <Plug className="h-4.5 w-4.5" />
+                      </div>
+                      <div className="text-base font-medium text-zinc-900 dark:text-zinc-100">Integrations</div>
+                    </div>
                   </AccordionTrigger>
                   <AccordionContent>
                     <div className="space-y-3">
@@ -802,9 +815,14 @@ export default function AppDetailsPage() {
                     </div>
                   </AccordionContent>
                 </AccordionItem>
-                <AccordionItem value="mobile">
-                  <AccordionTrigger className="cursor-pointer">
-                    <div className="text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Mobile Development</div>
+                <AccordionItem value="mobile" className="border-b border-zinc-200/50 dark:border-zinc-800/50">
+                  <AccordionTrigger className="cursor-pointer hover:no-underline py-4 group">
+                    <div className="flex items-center gap-3">
+                      <div className="h-9 w-9 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-700 dark:text-zinc-300">
+                        <Smartphone className="h-4.5 w-4.5" />
+                      </div>
+                      <div className="text-base font-medium text-zinc-900 dark:text-zinc-100">Mobile Development</div>
+                    </div>
                   </AccordionTrigger>
                   <AccordionContent>
                     <div className="mt-2">
@@ -813,9 +831,14 @@ export default function AppDetailsPage() {
                   </AccordionContent>
                 </AccordionItem>
 
-                <AccordionItem value="upgrades">
-                  <AccordionTrigger className="cursor-pointer">
-                    <div className="text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Upgrades</div>
+                <AccordionItem value="upgrades" className="border-b-0">
+                  <AccordionTrigger className="cursor-pointer hover:no-underline py-4 group">
+                    <div className="flex items-center gap-3">
+                      <div className="h-9 w-9 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-700 dark:text-zinc-300">
+                        <TrendingUp className="h-4.5 w-4.5" />
+                      </div>
+                      <div className="text-base font-medium text-zinc-900 dark:text-zinc-100">Upgrades</div>
+                    </div>
                   </AccordionTrigger>
                   <AccordionContent>
                     <div className="mt-2">

@@ -147,6 +147,9 @@ const validInvokeChannels = [
   // We can't detect with IS_TEST_BUILD in the preload script because
   // it's a separate process from the main process.
   "supabase:fake-connect-and-set-project",
+    // Nati auth
+  "nati-auth:logout",
+  "nati-auth:update-pro-status",
 ];
 
 // Add valid receive channels

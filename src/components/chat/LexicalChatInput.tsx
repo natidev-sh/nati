@@ -20,12 +20,16 @@ import {
   type BeautifulMentionsMenuItemProps,
 } from "lexical-beautiful-mentions";
 import { KEY_ENTER_COMMAND, COMMAND_PRIORITY_HIGH, $getSelection, $isRangeSelection } from "lexical";
+import { File as FileIcon, Folder as FolderIcon, Sparkles as SparklesIcon, AppWindow } from "lucide-react";
 import { useLoadApps } from "@/hooks/useLoadApps";
 import { usePrompts } from "@/hooks/usePrompts";
 import { forwardRef } from "react";
-import { useAtomValue } from "jotai";
+import { useAtomValue, useSetAtom } from "jotai";
 import { selectedAppIdAtom } from "@/atoms/appAtoms";
 import { MENTION_REGEX, parseAppMentions } from "@/shared/parse_mention_apps";
+import { selectedFileAtom } from "@/atoms/viewAtoms";
+import { previewModeAtom } from "@/atoms/appAtoms";
+import { showSuccess, showOpened } from "@/lib/toast";
 
 // Define the theme for mentions
 const beautifulMentionsTheme: BeautifulMentionsTheme = {
@@ -40,7 +44,10 @@ const CustomMenuItem = forwardRef<
 >(({ selected, item, ...props }, ref) => {
   const isPrompt = typeof item !== "string" && item.data?.type === "prompt";
   const isFile = typeof item !== "string" && item.data?.type === "file";
-  const label = isPrompt ? "Prompt" : isFile ? "File" : "App";
+  const isFolder = typeof item !== "string" && item.data?.type === "folder";
+  const isApp = typeof item === "string" && !isFile && !isFolder && !isPrompt;
+  const label = isPrompt ? "Prompt" : isFolder ? "Folder" : isFile ? "File" : "App";
+  const IconComp = isPrompt ? SparklesIcon : isFolder ? FolderIcon : isFile ? FileIcon : AppWindow;
   const value = typeof item === "string" ? item : (item as any)?.value;
   return (
     <li
@@ -57,12 +64,17 @@ const CustomMenuItem = forwardRef<
           className={`px-2 py-0.5 text-xs font-medium rounded-md flex-shrink-0 ${
             isPrompt
               ? "bg-purple-500 text-white"
+              : isFolder
+              ? "bg-amber-500 text-white"
               : isFile
               ? "bg-sky-600 text-white"
               : "bg-primary text-primary-foreground"
           }`}
         >
-          {label}
+          <span className="inline-flex items-center gap-1">
+            <IconComp className="h-3.5 w-3.5" />
+            {label}
+          </span>
         </span>
         <span className="truncate text-sm">{value}</span>
       </div>
@@ -247,6 +259,8 @@ export function LexicalChatInput({
   const [shouldClear, setShouldClear] = useState(false);
   const selectedAppId = useAtomValue(selectedAppIdAtom);
   const [projectFiles, setProjectFiles] = useState<string[]>([]);
+  const setSelectedFile = useSetAtom(selectedFileAtom);
+  const setPreviewMode = useSetAtom(previewModeAtom);
 
   // Listen to FileTree broadcasts of the files list
   useEffect(() => {
@@ -312,6 +326,7 @@ export function LexicalChatInput({
             p.selectEnd();
           }
         });
+        try { showSuccess(`Mentioned ${path}`); } catch {}
       };
       window.addEventListener("chat:mention-file", handler as EventListener);
       return () => window.removeEventListener("chat:mention-file", handler as EventListener);
@@ -347,6 +362,18 @@ export function LexicalChatInput({
 
     const appMentions = filteredApps.map((app) => app.name);
 
+    // Build unique folders from project files (include cumulative paths)
+    const folderSet = new Set<string>();
+    for (const p of projectFiles || []) {
+      const parts = p.split("/");
+      let acc = "";
+      for (let i = 0; i < parts.length - 1; i++) {
+        acc = acc ? `${acc}/${parts[i]}` : parts[i];
+        folderSet.add(acc);
+      }
+    }
+    const folderItems = Array.from(folderSet).map((v) => ({ value: v, type: "folder" }));
+
     // Map project files into mention items as objects to label them in the menu
     const fileItems = (projectFiles || []).map((p) => ({ value: p, type: "file" }));
 
@@ -357,7 +384,7 @@ export function LexicalChatInput({
     }));
 
     return {
-      "@": [...fileItems, ...appMentions, ...promptItems],
+      "@": [...folderItems, ...fileItems, ...appMentions, ...promptItems],
     };
   }, [apps, selectedAppId, value, excludeCurrentApp, prompts, projectFiles]);
 
@@ -427,7 +454,30 @@ export function LexicalChatInput({
 
   return (
     <LexicalComposer initialConfig={initialConfig}>
-      <div className="relative flex-1">
+      <div
+        className="relative flex-1"
+        onClick={(e) => {
+          // Detect clicks on @mentions and open file/folder in Code view
+          const el = e.target as HTMLElement | null;
+          if (!el) return;
+          let node: HTMLElement | null = el;
+          for (let i = 0; i < 3 && node; i++) {
+            const text = (node.textContent || "").trim();
+            if (text.startsWith("@") && text.length > 1) {
+              const path = text.slice(1);
+              if (path && !path.includes(" ")) {
+                setPreviewMode("code" as any);
+                setSelectedFile({ path });
+                try { window.dispatchEvent(new CustomEvent("filetree:focus", { detail: { path } })); } catch {}
+                const kind = (projectFiles || []).includes(path) ? "file" : "folder";
+                try { showOpened(path, kind as any); } catch {}
+              }
+              break;
+            }
+            node = node.parentElement;
+          }
+        }}
+      >
         <PlainTextPlugin
           contentEditable={
             <ContentEditable

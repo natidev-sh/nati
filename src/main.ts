@@ -18,6 +18,8 @@ import { BackupManager } from "./backup_manager";
 import { getDatabasePath, initializeDatabase } from "./db";
 import { UserSettings } from "./lib/schemas";
 import { handleNeonOAuthReturn } from "./neon_admin/neon_return_handler";
+import { handleNatiAuthReturn } from "./nati_auth/nati_auth_return_handler";
+import { startDesktopHeartbeat, stopDesktopHeartbeat } from "./desktop_heartbeat";
 
 log.errorHandler.startCatching();
 log.eventLogger.startLogging();
@@ -61,6 +63,12 @@ export async function onReady() {
   const settings = readSettings();
   await onFirstRunMaybe(settings);
   createWindow();
+
+  // Start desktop heartbeat for remote control
+  if (settings.natiUser?.id) {
+    startDesktopHeartbeat();
+    logger.info("Desktop heartbeat started for user:", settings.natiUser.email);
+  }
 
   logger.info("Auto-update enabled=", settings.enableAutoUpdate);
   // Only enable auto-update in packaged builds
@@ -387,6 +395,44 @@ function handleDeepLinkReturn(url: string) {
     handleDyadProReturn({
       apiKey,
     });
+    // Send message to renderer to trigger re-render
+    mainWindow?.webContents.send("deep-link-received", {
+      type: parsed.hostname,
+    });
+    return;
+  }
+  // dyad://nati-auth-return?userId=123&email=user@example.com&name=John&avatar=https://...&accessToken=abc&refreshToken=xyz&expiresIn=3600&isPro=true&isAdmin=false
+  if (parsed.hostname === "nati-auth-return") {
+    const userId = parsed.searchParams.get("userId");
+    const email = parsed.searchParams.get("email");
+    const name = parsed.searchParams.get("name") || undefined;
+    const avatar = parsed.searchParams.get("avatar") || undefined;
+    const accessToken = parsed.searchParams.get("accessToken");
+    const refreshToken = parsed.searchParams.get("refreshToken");
+    const expiresIn = Number(parsed.searchParams.get("expiresIn"));
+    const isPro = parsed.searchParams.get("isPro") === "true";
+    const isAdmin = parsed.searchParams.get("isAdmin") === "true";
+    
+    if (!userId || !email || !accessToken || !refreshToken || !expiresIn) {
+      dialog.showErrorBox(
+        "Invalid URL",
+        "Expected userId, email, accessToken, refreshToken, and expiresIn"
+      );
+      return;
+    }
+    
+    handleNatiAuthReturn({
+      userId,
+      email,
+      name,
+      avatar,
+      accessToken,
+      refreshToken,
+      expiresIn,
+      isPro,
+      isAdmin,
+    });
+    
     // Send message to renderer to trigger re-render
     mainWindow?.webContents.send("deep-link-received", {
       type: parsed.hostname,

@@ -23,7 +23,7 @@ Structure:
 Okay, I can help you summarize this pattern for creating a new Cursor rule, focusing on the TanStack Query integration and the preferred error handling strategy.
 
 Here's a summary of the pattern:
-
+l
 The pattern involves a client-side React hook interacting with main process IPC handlers via an `IpcClient` layer, leveraging TanStack Query for managing asynchronous operations, state, and caching.
 
 **1. React Hook (e.g., `useSomething.ts`):**

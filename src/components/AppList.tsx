@@ -1,6 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import { formatDistanceToNow, isToday, isYesterday, differenceInCalendarDays } from "date-fns";
-import { PlusCircle, Search, ChevronRight } from "lucide-react";
+import { PlusCircle, Search, ChevronRight, Users } from "lucide-react";
 import { useAtom, useSetAtom } from "jotai";
 import { selectedAppIdAtom } from "@/atoms/appAtoms";
 import {
@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { selectedChatIdAtom } from "@/atoms/chatAtoms";
 import { useLoadApps } from "@/hooks/useLoadApps";
+import { useSharedApps } from "@/hooks/useSharedApps";
 import { useMemo, useState, useEffect } from "react";
 import { AppSearchDialog } from "./AppSearchDialog";
 
@@ -21,6 +22,7 @@ export function AppList({ show }: { show?: boolean }) {
   const [selectedAppId, setSelectedAppId] = useAtom(selectedAppIdAtom);
   const setSelectedChatId = useSetAtom(selectedChatIdAtom);
   const { apps, loading, error } = useLoadApps();
+  const { sharedApps, loading: sharedLoading } = useSharedApps();
   // search dialog state
   const [isSearchDialogOpen, setIsSearchDialogOpen] = useState(false);
 
@@ -132,7 +134,7 @@ export function AppList({ show }: { show?: boolean }) {
         className="overflow-y-auto h-[calc(100vh-112px)] select-none"
         data-testid="app-list-container"
       >
-        <SidebarGroupLabel className="px-2 py-1 glass-contrast-text text-[11px] uppercase tracking-wide opacity-70">
+        <SidebarGroupLabel className="px-3 py-2 glass-contrast-text text-[11px] uppercase tracking-wide opacity-70">
           Your Apps
         </SidebarGroupLabel>
         <SidebarGroupContent>
@@ -140,7 +142,7 @@ export function AppList({ show }: { show?: boolean }) {
             <Button
               onClick={handleNewApp}
               variant="outline"
-              className="flex items-center justify-start gap-2 mx-2 py-2 rounded-xl glass-surface glass-hover glass-active outline-none focus-visible:ring-2 ring-white/40 dark:ring-white/15"
+              className="flex items-center justify-start gap-2 mx-2 py-2 rounded-xl glass-surface glass-hover ring-1 ring-white/10 dark:ring-white/10 outline-none focus-visible:ring-2 focus-visible:ring-white/40 dark:focus-visible:ring-white/20"
             >
               <PlusCircle size={16} />
               <span>New App</span>
@@ -148,7 +150,7 @@ export function AppList({ show }: { show?: boolean }) {
             <Button
               onClick={() => setIsSearchDialogOpen(!isSearchDialogOpen)}
               variant="outline"
-              className="flex items-center justify-start gap-2 mx-2 py-2.5 rounded-xl glass-surface glass-hover outline-none focus-visible:ring-2 ring-white/40 dark:ring-white/15"
+              className="flex items-center justify-start gap-2 mx-2 py-2.5 rounded-xl glass-surface glass-hover ring-1 ring-white/10 dark:ring-white/10 outline-none focus-visible:ring-2 focus-visible:ring-white/40 dark:focus-visible:ring-white/20"
               data-testid="search-apps-button"
             >
               <Search size={16} />
@@ -171,7 +173,7 @@ export function AppList({ show }: { show?: boolean }) {
               <div className="space-y-2" data-testid="app-list">
                 {grouped.map((group) => (
                   <div key={group.label}>
-                    <div className="px-3 py-1 text-[11px] uppercase tracking-wide opacity-60 glass-contrast-text">
+                    <div className="px-3 py-1.5 text-[11px] uppercase tracking-wide opacity-70 glass-contrast-text">
                       {group.label}
                     </div>
                     <SidebarMenu className="space-y-1">
@@ -181,20 +183,27 @@ export function AppList({ show }: { show?: boolean }) {
                             variant="ghost"
                             onClick={() => handleAppClick(app.id)}
                             onContextMenu={(e) => openContextMenu(e, app.id)}
-                            className={`group cursor-pointer justify-between w-full text-left py-2.5 px-3 rounded-xl transition-colors border ${
+                            className={`group cursor-pointer justify-between w-full text-left py-2.5 px-3 rounded-xl transition-colors min-h-[40px] ${
                               selectedAppId === app.id
                                 ? "glass-surface glass-active ring-1 ring-white/30 dark:ring-white/10 shadow-sm"
-                                : "glass-surface glass-hover border-transparent"
+                                : "glass-surface/80 glass-hover hover:ring-1 hover:ring-white/15 dark:hover:ring-white/10"
                             }`}
                             data-testid={`app-list-item-${app.name}`}
                           >
-                            <div className="flex flex-col w-full glass-contrast-text">
-                              <span className="truncate text-[13px]">{app.name}</span>
-                              <span className="text-[11px] opacity-70">
-                                {formatDistanceToNow(new Date(app.createdAt), {
-                                  addSuffix: true,
-                                })}
-                              </span>
+                            <div className="flex items-center w-full gap-2.5 glass-contrast-text">
+                              <div className="h-5 w-5 rounded-full bg-black/10 dark:bg-white/10 flex items-center justify-center text-[10px] shrink-0">
+                                {String(app.name).trim().charAt(0).toUpperCase() || "A"}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="truncate block text-[13px] font-medium" title={app.name}>
+                                    {app.name}
+                                  </span>
+                                  <span className="shrink-0 text-[10px] opacity-70 px-1.5 py-0.5 rounded bg-black/5 dark:bg-white/5">
+                                    {formatDistanceToNow(new Date(app.createdAt), { addSuffix: true })}
+                                  </span>
+                                </div>
+                              </div>
                             </div>
                             <ChevronRight size={14} className="opacity-40 group-hover:opacity-70 transition-opacity" />
                           </Button>
@@ -203,6 +212,57 @@ export function AppList({ show }: { show?: boolean }) {
                     </SidebarMenu>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {/* Shared Apps Section */}
+            {sharedApps.length > 0 && (
+              <div className="mt-4">
+                <div className="px-3 py-2 text-[11px] uppercase tracking-wide opacity-70 glass-contrast-text flex items-center gap-2">
+                  <Users size={12} />
+                  Team Shared Apps ({sharedApps.length})
+                </div>
+                <div className="space-y-1">
+                  {sharedApps.map((sharedApp) => (
+                    <div key={sharedApp.id} className="mx-2">
+                      <Button
+                        variant="ghost"
+                        onClick={() => {
+                          // Check if this app exists locally by desktop_app_id
+                          const localApp = apps.find(app => app.id.toString() === sharedApp.desktop_app_id)
+                          if (localApp) {
+                            // Open the local app
+                            handleAppClick(localApp.id)
+                          } else {
+                            // Show info about the shared app
+                            navigate({ to: "/teams" })
+                          }
+                        }}
+                        className="w-full p-3 rounded-xl glass-surface/80 glass-hover hover:ring-1 hover:ring-white/15 text-left h-auto cursor-pointer"
+                      >
+                        <div className="flex items-start gap-2">
+                          <div className="h-5 w-5 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-[10px] font-semibold shrink-0">
+                            {sharedApp.name.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <span className="text-[13px] font-medium glass-contrast-text truncate" title={sharedApp.name}>
+                                {sharedApp.name}
+                              </span>
+                              <Users size={10} className="text-blue-500 shrink-0" />
+                            </div>
+                            <div className="text-[10px] opacity-70 glass-contrast-text">
+                              {sharedApp.team_name}
+                            </div>
+                            <div className="text-[10px] opacity-50 glass-contrast-text mt-0.5 truncate">
+                              {sharedApp.path}
+                            </div>
+                          </div>
+                        </div>
+                      </Button>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>

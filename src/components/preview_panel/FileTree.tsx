@@ -28,6 +28,8 @@ interface FileTreeProps {
   modifiedPaths?: Set<string>;
   // Optional: git status per path (e.g., M/A/D/U)
   gitStatuses?: Record<string, "M" | "A" | "D" | "U">;
+  // Optional: highlight query for names
+  highlightQuery?: string;
 }
 
 interface TreeNode {
@@ -73,10 +75,11 @@ const buildFileTree = (files: string[]): TreeNode[] => {
 };
 
 // File tree component
-export const FileTree = ({ files, appId, onRequestRefresh, modifiedPaths, gitStatuses }: FileTreeProps) => {
+export const FileTree = ({ files, appId, onRequestRefresh, modifiedPaths, gitStatuses, highlightQuery }: FileTreeProps) => {
   const treeData = React.useMemo(() => buildFileTree(files), [files]);
   const containerRef = React.useRef<HTMLDivElement | null>(null);
   const [focusedPath, setFocusedPath] = React.useState<string | null>(null);
+  const [expandTarget, setExpandTarget] = React.useState<string | null>(null);
   const [ctx, setCtx] = React.useState<{
     show: boolean;
     x: number;
@@ -156,6 +159,24 @@ export const FileTree = ({ files, appId, onRequestRefresh, modifiedPaths, gitSta
     };
   }, [ctx.show]);
 
+  // Listen for external focus/expand requests
+  React.useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { path?: string } | undefined;
+      const path = detail?.path;
+      if (!path) return;
+      setExpandTarget(path);
+      // Scroll after a tick
+      setTimeout(() => {
+        const el = containerRef.current?.querySelector<HTMLElement>(`[data-path="${CSS.escape(path)}"]`);
+        el?.scrollIntoView({ block: "center" });
+        el?.focus();
+      }, 50);
+    };
+    window.addEventListener("filetree:focus", handler as EventListener);
+    return () => window.removeEventListener("filetree:focus", handler as EventListener);
+  }, []);
+
   return (
     <div
       ref={containerRef}
@@ -173,6 +194,8 @@ export const FileTree = ({ files, appId, onRequestRefresh, modifiedPaths, gitSta
         focusedPath={focusedPath}
         setFocusedPath={setFocusedPath}
         setContextMenu={setCtx}
+        highlightQuery={highlightQuery}
+        expandTarget={expandTarget}
       />
 
       {ctx.show && ctx.node && createPortal(
@@ -209,9 +232,9 @@ export const FileTree = ({ files, appId, onRequestRefresh, modifiedPaths, gitSta
             }
             closeContext();
           }} />
-          {/* Send to chat (files only) */}
-          {ctx.node && !ctx.node.isDirectory && (
-            <ContextMenuItem icon={<MessageSquarePlus size={14} />} label="Send to chat" onClick={() => {
+          {/* Send to chat (files and folders) */}
+          {ctx.node && (
+            <ContextMenuItem icon={<MessageSquarePlus size={14} />} label={ctx.node.isDirectory? "Send folder to chat" : "Send to chat"} onClick={() => {
               const p = ctx.node?.path;
               if (p) {
                 try {
@@ -379,6 +402,8 @@ interface TreeNodesProps {
   focusedPath: string | null;
   setFocusedPath: (p: string | null) => void;
   setContextMenu: React.Dispatch<React.SetStateAction<{ show: boolean; x: number; y: number; node: TreeNode | null }>>;
+  highlightQuery?: string | null;
+  expandTarget?: string | null;
 }
 
 // Sort nodes to show directories first
@@ -392,7 +417,7 @@ const sortNodes = (nodes: TreeNode[]): TreeNode[] => {
 };
 
 // Tree nodes component
-const TreeNodes = React.memo(({ nodes, level, appId, modifiedPaths, gitStatuses, focusedPath, setFocusedPath, setContextMenu }: TreeNodesProps) => (
+const TreeNodes = React.memo(({ nodes, level, appId, modifiedPaths, gitStatuses, focusedPath, setFocusedPath, setContextMenu, highlightQuery, expandTarget }: TreeNodesProps) => (
   <ul className="">
     {sortNodes(nodes).map((node, index) => (
       <TreeNode
@@ -406,6 +431,8 @@ const TreeNodes = React.memo(({ nodes, level, appId, modifiedPaths, gitStatuses,
         focusedPath={focusedPath}
         setFocusedPath={setFocusedPath}
         setContextMenu={setContextMenu}
+        highlightQuery={highlightQuery}
+        expandTarget={expandTarget}
       />
     ))}
   </ul>
@@ -421,6 +448,8 @@ interface TreeNodeProps {
   focusedPath: string | null;
   setFocusedPath: (p: string | null) => void;
   setContextMenu: React.Dispatch<React.SetStateAction<{ show: boolean; x: number; y: number; node: TreeNode | null }>>;
+  highlightQuery?: string | null;
+  expandTarget?: string | null;
 }
 
 // Icon helper
@@ -434,11 +463,21 @@ function getFileIcon(name: string): React.ReactNode {
 }
 
 // Individual tree node component
-const TreeNode = ({ node, level, isLast, appId, modifiedPaths, gitStatuses, focusedPath, setFocusedPath, setContextMenu }: TreeNodeProps) => {
+const TreeNode = ({ node, level, isLast, appId, modifiedPaths, gitStatuses, focusedPath, setFocusedPath, setContextMenu, highlightQuery, expandTarget }: TreeNodeProps) => {
   const [expanded, setExpanded] = React.useState(level < 2);
   const setSelectedFile = useSetAtom(selectedFileAtom);
   const selected = useAtomValue(selectedFileAtom);
   const isActive = !node.isDirectory && selected?.path === node.path;
+
+  // Expand directories along the expandTarget path
+  React.useEffect(() => {
+    if (!expandTarget) return;
+    if (node.isDirectory) {
+      if (expandTarget === node.path || expandTarget.startsWith(node.path + "/")) {
+        setExpanded(true);
+      }
+    }
+  }, [expandTarget, node.isDirectory, node.path]);
 
   const onRowClick = () => {
     if (node.isDirectory) {
@@ -501,6 +540,7 @@ const TreeNode = ({ node, level, isLast, appId, modifiedPaths, gitStatuses, focu
         tabIndex={focusedPath === node.path ? 0 : -1}
         onFocus={() => setFocusedPath(node.path)}
         onKeyDown={onKeyDownRow}
+        data-path={node.path}
       >
         {/* Indentation guide + branch char */}
         {level > 0 && (
@@ -534,8 +574,24 @@ const TreeNode = ({ node, level, isLast, appId, modifiedPaths, gitStatuses, focu
           )}
         </span>
 
-        {/* Name */}
-        <span className="truncate">{node.name}</span>
+        {/* Name with optional highlight */}
+        <span className="truncate">
+          {(() => {
+            const q = (highlightQuery || "").trim().toLowerCase();
+            if (!q || !node.name.toLowerCase().includes(q)) return node.name;
+            const idx = node.name.toLowerCase().indexOf(q);
+            const before = node.name.slice(0, idx);
+            const match = node.name.slice(idx, idx + q.length);
+            const after = node.name.slice(idx + q.length);
+            return (
+              <>
+                {before}
+                <mark className="bg-yellow-300 text-black dark:bg-yellow-300 dark:text-black rounded px-[2px]">{match}</mark>
+                {after}
+              </>
+            );
+          })()}
+        </span>
 
         {/* Status badges */}
         {!node.isDirectory && modifiedPaths?.has(node.path) && (
@@ -557,6 +613,8 @@ const TreeNode = ({ node, level, isLast, appId, modifiedPaths, gitStatuses, focu
           focusedPath={focusedPath}
           setFocusedPath={setFocusedPath}
           setContextMenu={setContextMenu}
+          highlightQuery={highlightQuery}
+          expandTarget={expandTarget}
         />
       )}
     </li>

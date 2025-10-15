@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/popover";
 
 import { InfoIcon, Settings2, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Tooltip,
   TooltipContent,
@@ -32,6 +32,9 @@ export function ContextFilesPicker() {
   const [newPath, setNewPath] = useState("");
   const [newAutoIncludePath, setNewAutoIncludePath] = useState("");
   const [newExcludePath, setNewExcludePath] = useState("");
+  const [qInclude, setQInclude] = useState("");
+  const [qExclude, setQExclude] = useState("");
+  const [qAuto, setQAuto] = useState("");
 
   // Handlers for Explorer buttons (best-effort; works in Chromium/Electron)
   const handlePickFolder = () => {
@@ -180,6 +183,17 @@ export function ContextFilesPicker() {
                 </span>
               )}
             </div>
+
+            {excludePaths.length > 0 && (
+              <div className="flex w-full max-w-sm items-center space-x-2 mt-2">
+                <Input
+                  type="text"
+                  placeholder="Filter excluded paths"
+                  value={qExclude}
+                  onChange={(e) => setQExclude(e.target.value)}
+                />
+              </div>
+            )}
             <p className="text-sm text-muted-foreground select-none">
               <TooltipProvider>
                 <Tooltip>
@@ -229,6 +243,18 @@ export function ContextFilesPicker() {
             </Button>
           </div>
 
+          {/* Filter includes */}
+          {contextPaths.length > 0 && (
+            <div className="flex w-full max-w-sm items-center space-x-2 mt-2">
+              <Input
+                type="text"
+                placeholder="Filter included paths"
+                value={qInclude}
+                onChange={(e) => setQInclude(e.target.value)}
+              />
+            </div>
+          )}
+
           {/* Optional: quick file picker */}
           <div className="flex w-full max-w-sm items-center space-x-2">
             <Button variant="ghost" type="button" onClick={handlePickFile} title="Pick a single file">Pick file…</Button>
@@ -237,7 +263,9 @@ export function ContextFilesPicker() {
           <TooltipProvider>
             {contextPaths.length > 0 ? (
               <div className="space-y-2">
-                {contextPaths.map((p: ContextPathResult) => (
+                {contextPaths
+                  .filter((p: ContextPathResult) => p.globPath.toLowerCase().includes(qInclude.trim().toLowerCase()))
+                  .map((p: ContextPathResult) => (
                   <div
                     key={p.globPath}
                     className="flex items-center justify-between gap-2 rounded-lg glass-surface ring-1 ring-white/30 dark:ring-white/10 p-2"
@@ -257,6 +285,17 @@ export function ContextFilesPicker() {
                         {p.files} files, ~{p.tokens} tokens
                       </span>
                     </div>
+
+              {smartContextAutoIncludes.length > 0 && (
+                <div className="flex w-full max-w-sm items-center space-x-2 mt-2">
+                  <Input
+                    type="text"
+                    placeholder="Filter auto-include paths"
+                    value={qAuto}
+                    onChange={(e) => setQAuto(e.target.value)}
+                  />
+                </div>
+              )}
                     <div className="flex items-center gap-2">
                       <Button
                         variant="ghost"
@@ -329,7 +368,9 @@ export function ContextFilesPicker() {
             <TooltipProvider>
               {excludePaths.length > 0 && (
                 <div className="space-y-2 mt-4">
-                  {excludePaths.map((p: ContextPathResult) => (
+                  {excludePaths
+                    .filter((p: ContextPathResult) => p.globPath.toLowerCase().includes(qExclude.trim().toLowerCase()))
+                    .map((p: ContextPathResult) => (
                     <div
                       key={p.globPath}
                       className="flex items-center justify-between gap-2 rounded-lg glass-surface ring-1 ring-red-200/70 p-2"
@@ -416,7 +457,9 @@ export function ContextFilesPicker() {
               <TooltipProvider>
                 {smartContextAutoIncludes.length > 0 && (
                   <div className="space-y-2 mt-4">
-                    {smartContextAutoIncludes.map((p: ContextPathResult) => (
+                    {smartContextAutoIncludes
+                      .filter((p: ContextPathResult) => p.globPath.toLowerCase().includes(qAuto.trim().toLowerCase()))
+                      .map((p: ContextPathResult) => (
                       <div
                         key={p.globPath}
                         className="flex items-center justify-between gap-2 rounded-lg glass-surface ring-1 ring-white/30 dark:ring-white/10 p-2"

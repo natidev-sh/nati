@@ -7,6 +7,7 @@ import {
   BookOpen,
   Terminal,
   Blocks,
+  Users,
 } from "lucide-react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useSidebar } from "@/components/ui/sidebar"; // import useSidebar hook
@@ -42,6 +43,11 @@ const items = [
     title: "Chat",
     to: "/chat",
     icon: Inbox,
+  },
+  {
+    title: "Teams",
+    to: "/teams",
+    icon: Users,
   },
   {
     title: "Prompt Library",
@@ -103,6 +109,7 @@ export function AppSidebar() {
     routerState.location.pathname === "/" ||
     routerState.location.pathname.startsWith("/app-details");
   const isChatRoute = routerState.location.pathname === "/chat";
+  const isTeamsRoute = routerState.location.pathname === "/teams";
   const isSettingsRoute = routerState.location.pathname.startsWith("/settings");
 
   let selectedItem: string | null = null;
@@ -119,6 +126,8 @@ export function AppSidebar() {
       selectedItem = "Apps";
     } else if (isChatRoute) {
       selectedItem = "Chat";
+    } else if (isTeamsRoute) {
+      selectedItem = "Teams";
     } else if (isSettingsRoute) {
       selectedItem = "Settings";
     }
@@ -222,8 +231,8 @@ function AppIcons({
                       } else if (item.title === "Settings") {
                         // Do not auto-expand on Settings hover to avoid opening menubars
                         onHoverChange("no-hover");
-                      } else if (item.title === "Library" || item.title === "Hub" || item.title === "Docs") {
-                        // Do not trigger hover-based expansion for Library or Hub
+                      } else if (item.title === "Teams" || item.title === "Library" || item.title === "Hub" || item.title === "Docs") {
+                        // Do not trigger hover-based expansion for these items
                         onHoverChange("no-hover");
                       }
                     }}

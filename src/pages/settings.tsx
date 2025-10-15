@@ -383,8 +383,9 @@ export default function SettingsPage() {
                 <button
                   onClick={() => setIsResetDialogOpen(true)}
                   disabled={isResetting}
-                  className="rounded-md border border-red-200/60 dark:border-red-800 bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500/70 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                  className="rounded-xl px-4 py-2 text-sm font-medium text-white bg-red-600/90 hover:bg-red-600 transition-colors shadow-sm ring-1 ring-red-300/30 dark:ring-red-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/70 disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center gap-2"
                 >
+                  <ShieldAlert className="h-4 w-4" />
                   {isResetting ? "Resetting..." : "Reset Everything"}
                 </button>
               </div>

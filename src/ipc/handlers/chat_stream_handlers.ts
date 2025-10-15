@@ -71,6 +71,7 @@ import { inArray } from "drizzle-orm";
 import { replacePromptReference } from "../utils/replacePromptReference";
 import { mcpManager } from "../utils/mcp_manager";
 import z from "zod";
+import { trackAPIUsage } from "../../api_usage_tracker";
 
 type AsyncIterableStream<T> = AsyncIterable<T> & ReadableStream<T>;
 
@@ -1093,6 +1094,17 @@ ${problemReport.problems
 
       // Only save the response and process it if we weren't aborted
       if (!abortController.signal.aborted && fullResponse) {
+        // Track API usage for analytics
+        const currentSettings = readSettings();
+        const modelName = currentSettings.selectedModel?.name || 'unknown';
+        const estimatedTokens = Math.ceil(fullResponse.length / 4);
+        await trackAPIUsage({
+          projectName: updatedChat.app?.name,
+          model: modelName,
+          totalTokens: estimatedTokens,
+          status: 'success'
+        }).catch(err => logger.warn('Failed to track API usage:', err));
+
         // Scrape from: <dyad-chat-summary>Renaming profile file</dyad-chat-title>
         const chatTitle = fullResponse.match(
           /<dyad-chat-summary>(.*?)<\/dyad-chat-summary>/,

@@ -10,7 +10,7 @@ import { CodeView } from "./CodeView";
 import { PreviewIframe } from "./PreviewIframe";
 import { Problems } from "./Problems";
 import { ConfigurePanel } from "./ConfigurePanel";
-import { ChevronDown, ChevronUp, Logs, Plus, X, Edit3, Palette } from "lucide-react";
+import { ChevronDown, ChevronUp, Logs, Plus, X, Edit3, Palette, Copy } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { PanelGroup, Panel, PanelResizeHandle } from "react-resizable-panels";
 import { Console } from "./Console";
@@ -22,6 +22,7 @@ interface ConsoleHeaderProps {
   isOpen: boolean;
   onToggle: () => void;
   latestMessage?: string;
+  messageCount: number;
 }
 
 // Console header component
@@ -29,32 +30,75 @@ const ConsoleHeader = ({
   isOpen,
   onToggle,
   latestMessage,
-}: ConsoleHeaderProps) => (
-  <div
-    onClick={onToggle}
-    role="button"
-    tabIndex={0}
-    onKeyDown={(e) => {
-      if (e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
-        onToggle();
-      }
-    }}
-    className="flex items-start gap-2 px-4 py-1.5 border-t border-border cursor-pointer glass-button glass-hover glass-active outline-none focus-visible:ring-2 ring-white/40 dark:ring-white/15"
-  >
-    <Logs size={16} className="mt-0.5" />
-    <div className="flex flex-col">
-      <span className="text-sm font-medium">System Messages</span>
-      {!isOpen && latestMessage && (
-        <span className="text-xs text-gray-500 truncate max-w-[200px] md:max-w-[400px]">
-          {latestMessage}
-        </span>
-      )}
+  messageCount,
+}: ConsoleHeaderProps) => {
+  const [justUpdated, setJustUpdated] = useState(false);
+  useEffect(() => {
+    if (!latestMessage) return;
+    setJustUpdated(true);
+    const t = setTimeout(() => setJustUpdated(false), 1200);
+    return () => clearTimeout(t);
+  }, [latestMessage]);
+
+  const badgeLive = messageCount > 0;
+
+  return (
+    <div
+      onClick={onToggle}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onToggle();
+        }
+      }}
+      className="group relative flex items-center gap-3 px-3 py-1.5 cursor-pointer glass-button glass-hover glass-active outline-none focus-visible:ring-2 ring-white/40 dark:ring-white/15"
+    >
+      {/* Icon */}
+      <div className="h-6 w-6 rounded-md border flex items-center justify-center bg-gradient-to-br from-white/70 to-white/40 dark:from-white/15 dark:to-white/5">
+        <Logs size={14} />
+      </div>
+
+      {/* Titles */}
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium">System Messages</span>
+          <span
+            className={`text-[10px] px-1.5 py-0.5 rounded-full border ${
+              badgeLive
+                ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
+                : "bg-white/50 dark:bg-white/10"
+            }`}
+            title={badgeLive ? "Streaming logs" : "No logs yet"}
+          >
+            {badgeLive ? "Live" : "Idle"}
+          </span>
+        </div>
+        {!isOpen && latestMessage && (
+          <div className="flex items-center gap-2 min-w-0">
+            <div className={`text-xs text-muted-foreground truncate max-w-[220px] md:max-w-[460px] ${justUpdated ? "animate-pulse" : ""}`}>{latestMessage}</div>
+            <button
+              className="flex-shrink-0 inline-flex items-center justify-center h-5 w-5 rounded glass-button glass-hover"
+              title="Copy latest log"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (latestMessage) navigator.clipboard.writeText(latestMessage);
+              }}
+            >
+              <Copy size={12} />
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Chevron */}
+      <div className={`transition-transform duration-200 ${isOpen ? "rotate-180" : "rotate-0"}`}>
+        <ChevronDown size={16} />
+      </div>
     </div>
-    <div className="flex-1" />
-    {isOpen ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
-  </div>
-);
+  );
+};
 
 // Main PreviewPanel component
 export function PreviewPanel() {
@@ -173,6 +217,7 @@ export function PreviewPanel() {
                     isOpen={true}
                     onToggle={() => setIsConsoleOpen(false)}
                     latestMessage={latestMessage}
+                    messageCount={messageCount}
                   />
                   {/* Tabs toolbar */}
                   <div className="px-2 pt-2 border-t border-white/10">
@@ -213,6 +258,7 @@ export function PreviewPanel() {
           isOpen={false}
           onToggle={() => setIsConsoleOpen(true)}
           latestMessage={latestMessage}
+          messageCount={messageCount}
         />
       )}
     </div>

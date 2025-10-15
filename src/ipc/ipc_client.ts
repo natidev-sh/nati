@@ -1383,4 +1383,13 @@ export class IpcClient {
   public cancelHelpChat(sessionId: string): void {
     this.ipcRenderer.invoke("help:chat:cancel", sessionId).catch(() => {});
   }
+
+  // --- Nati Auth ---
+  public async logoutNatiUser(): Promise<void> {
+    await this.ipcRenderer.invoke("nati-auth:logout");
+  }
+
+  public async updateNatiUserProStatus(params: { isPro: boolean; isAdmin?: boolean }): Promise<void> {
+    await this.ipcRenderer.invoke("nati-auth:update-pro-status", params);
+  }
 }

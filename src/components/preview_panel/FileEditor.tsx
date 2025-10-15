@@ -107,6 +107,9 @@ export const FileEditor = ({ appId, filePath }: FileEditorProps) => {
   const isSvg = /\.svg$/i.test(filePath);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [imageErr, setImageErr] = useState<string | null>(null);
+  // Context menu state
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuPos, setMenuPos] = useState<{x:number;y:number}>({x:0,y:0});
 
   useEffect(() => {
     let mounted = true;
@@ -235,6 +238,27 @@ export const FileEditor = ({ appId, filePath }: FileEditorProps) => {
         saveFile();
       }
     });
+
+    // Right-click context menu (custom)
+    const domNode = editor.getDomNode();
+    if (domNode) {
+      const onCtx = (e: MouseEvent) => {
+        e.preventDefault();
+        setMenuPos({ x: e.clientX, y: e.clientY });
+        setMenuOpen(true);
+      };
+      const onClickAnywhere = () => setMenuOpen(false);
+      domNode.addEventListener("contextmenu", onCtx);
+      window.addEventListener("click", onClickAnywhere);
+      window.addEventListener("keydown", (ev) => {
+        if (ev.key === "Escape") setMenuOpen(false);
+      });
+      // Cleanup
+      editor.onDidDispose(() => {
+        domNode.removeEventListener("contextmenu", onCtx);
+        window.removeEventListener("click", onClickAnywhere);
+      });
+    }
   };
 
   // Handle content change
@@ -301,7 +325,7 @@ export const FileEditor = ({ appId, filePath }: FileEditorProps) => {
   }
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col relative">
       <Breadcrumb
         path={filePath}
         hasUnsavedChanges={displayUnsavedChanges}
@@ -343,6 +367,35 @@ export const FileEditor = ({ appId, filePath }: FileEditorProps) => {
           />
         )}
       </div>
+      {/* Context menu overlay */}
+      {menuOpen && (
+        <div
+          className="absolute z-50"
+          style={{ left: menuPos.x, top: menuPos.y }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="min-w-[180px] rounded-md border bg-popover text-popover-foreground shadow-md overflow-hidden">
+            <button
+              className="w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent("chat:mention-file", { detail: { path: filePath } }));
+                setMenuOpen(false);
+              }}
+            >
+              Mention in Chat
+            </button>
+            <button
+              className="w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
+              onClick={() => {
+                navigator.clipboard.writeText(filePath);
+                setMenuOpen(false);
+              }}
+            >
+              Copy Path
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
