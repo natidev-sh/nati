@@ -41,12 +41,12 @@ if (started) {
 // https://www.electronjs.org/docs/latest/tutorial/launch-app-from-url-in-another-app#main-process-mainjs
 if (process.defaultApp) {
   if (process.argv.length >= 2) {
-    app.setAsDefaultProtocolClient("dyad", process.execPath, [
+    app.setAsDefaultProtocolClient("nati", process.execPath, [
       path.resolve(process.argv[1]),
     ]);
   }
 } else {
-  app.setAsDefaultProtocolClient("dyad");
+  app.setAsDefaultProtocolClient("nati");
 }
 
 export async function onReady() {
@@ -326,7 +326,7 @@ app.on("open-url", (event, url) => {
 });
 
 function handleDeepLinkReturn(url: string) {
-  // example url: "dyad://supabase-oauth-return?token=a&refreshToken=b"
+  // example url: "nati://supabase-oauth-return?token=a&refreshToken=b"
   let parsed: URL;
   try {
     parsed = new URL(url);
@@ -342,10 +342,10 @@ function handleDeepLinkReturn(url: string) {
     "hostname",
     parsed.hostname,
   );
-  if (parsed.protocol !== "dyad:") {
+  if (parsed.protocol !== "nati:") {
     dialog.showErrorBox(
       "Invalid Protocol",
-      `Expected dyad://, got ${parsed.protocol}. Full URL: ${url}`,
+      `Expected nati://, got ${parsed.protocol}. Full URL: ${url}`,
     );
     return;
   }
