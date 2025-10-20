@@ -23,10 +23,30 @@ export function CustomizeSettings() {
     };
   };
 
+  const notificationSettings = useMemo(
+    () => settings?.notifications || {},
+    [settings]
+  ) as {
+    soundEnabled?: boolean;
+  };
+
   const theme = consoleSettings.theme || {};
 
   return (
     <div className="space-y-6">
+      <div className="space-y-2">
+        <Label className="text-sm">Sound Notifications</Label>
+        <div className="flex items-center gap-2">
+          <Switch
+            checked={notificationSettings.soundEnabled ?? true}
+            onCheckedChange={(checked) =>
+              updateSettings({ notifications: { ...notificationSettings, soundEnabled: checked } })
+            }
+          />
+          <span className="text-sm text-muted-foreground">Play a sound when agent finishes responding.</span>
+        </div>
+      </div>
+
       <div className="space-y-2">
         <Label className="text-sm">Auto scroll</Label>
         <div className="flex items-center gap-2">

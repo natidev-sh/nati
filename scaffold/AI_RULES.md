@@ -10,6 +10,11 @@
 - UPDATE the main page to include the new components. OTHERWISE, the user can NOT see any components!
 - ALWAYS try to use the shadcn/ui library.
 - Tailwind CSS: always use Tailwind CSS for styling components. Utilize Tailwind classes extensively for layout, spacing, colors, and other design aspects.
+- Use the NatiStyle UI/UX Guidelines.
+- Always create a Landing Page.
+- Always create a Login Page.
+- Always create a Register Page.
+- Always create a Dashboard Page. 
 
 Available packages and libraries:
 

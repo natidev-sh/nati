@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { IpcClient } from "@/ipc/ipc_client";
 import { useSettings } from "@/hooks/useSettings";
 import { useDeepLink } from "@/contexts/DeepLinkContext";
-import { LogIn, LogOut, User, Crown, Sparkles, Shield, Settings as SettingsIcon } from "lucide-react";
+import { useUserBudgetInfo } from "@/hooks/useUserBudgetInfo";
+import { LogIn, LogOut, User, Crown, Sparkles, Shield, Settings as SettingsIcon, Zap, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from '@supabase/supabase-js';
 import { useNavigate } from '@tanstack/react-router';
@@ -30,6 +31,7 @@ interface UserProfile {
 export function NatiAuthButton() {
   const { settings, refreshSettings } = useSettings();
   const { lastDeepLink } = useDeepLink();
+  const { userBudget } = useUserBudgetInfo();
   const navigate = useNavigate();
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [isPro, setIsPro] = useState(false);
@@ -57,26 +59,41 @@ export function NatiAuthButton() {
 
       try {
         // Set auth session
-        await supabase.auth.setSession({
-          access_token: natiUser.accessToken.value,
-          refresh_token: natiUser.refreshToken?.value || '',
-        });
+        // Try to set session, but don't fail if tokens are invalid
+        try {
+          await supabase.auth.setSession({
+            access_token: natiUser.accessToken.value,
+            refresh_token: natiUser.refreshToken?.value || '',
+          });
+        } catch (authError) {
+          console.warn('Session setup failed, continuing anyway:', authError);
+        }
 
-        // Fetch profile
+        // Fetch profile (use maybeSingle to handle missing profiles)
         const { data, error } = await supabase
           .from('profiles')
           .select('first_name, last_name, avatar_url')
           .eq('id', natiUser.id)
-          .single();
+          .maybeSingle();
 
         if (error) {
           console.error('Error fetching profile:', error);
           return;
         }
 
-        setProfile(data);
+        // If profile exists, set it, otherwise use default
+        if (data) {
+          setProfile(data);
+        } else {
+          // Profile doesn't exist yet, set a default
+          setProfile({
+            first_name: natiUser.email?.split('@')[0] || 'User',
+            last_name: '',
+            avatar_url: null,
+          });
+        }
       } catch (error) {
-        console.error('Error fetching profile:', error);
+        console.error('Error in profile fetch:', error);
       }
     }
 
@@ -253,6 +270,38 @@ export function NatiAuthButton() {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        
+        {/* Credit Display */}
+        {isPro && userBudget && (
+          <>
+            <div className="px-2 py-2">
+              <div className="p-3 rounded-lg bg-gradient-to-br from-zinc-100 to-zinc-50 dark:from-zinc-800 dark:to-zinc-900 border border-zinc-200 dark:border-zinc-700">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Zap className="h-4 w-4 text-blue-500" />
+                    <span className="text-xs font-semibold text-zinc-600 dark:text-zinc-300">AI Credits</span>
+                  </div>
+                  <span className="text-xs font-bold text-zinc-900 dark:text-zinc-100">
+                    {Math.round(userBudget.totalCredits - userBudget.usedCredits)}
+                  </span>
+                </div>
+                <div className="h-1.5 rounded-full overflow-hidden bg-zinc-200 dark:bg-zinc-700">
+                  <div
+                    className="h-full bg-gradient-to-r from-blue-500 to-purple-600 transition-all duration-300"
+                    style={{ 
+                      width: `${Math.max(0, Math.min(100, ((userBudget.totalCredits - userBudget.usedCredits) / userBudget.totalCredits) * 100))}%` 
+                    }}
+                  />
+                </div>
+                <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-1">
+                  Resets {new Date(userBudget.budgetResetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                </p>
+              </div>
+            </div>
+            <DropdownMenuSeparator />
+          </>
+        )}
+
         <DropdownMenuItem
           onClick={() => IpcClient.getInstance().openExternalUrl("https://natiweb.vercel.app/dashboard")}
           className="cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
@@ -260,6 +309,17 @@ export function NatiAuthButton() {
           <User className="mr-2 h-4 w-4" />
           <span>Dashboard</span>
         </DropdownMenuItem>
+        
+        {isPro && (
+          <DropdownMenuItem
+            onClick={() => IpcClient.getInstance().openExternalUrl("https://natiweb.vercel.app/dashboard?tab=subscription")}
+            className="cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+          >
+            <CreditCard className="mr-2 h-4 w-4" />
+            <span>Manage Subscription</span>
+          </DropdownMenuItem>
+        )}
+        
         <DropdownMenuItem
           onClick={() => navigate({ to: '/settings' })}
           className="cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"

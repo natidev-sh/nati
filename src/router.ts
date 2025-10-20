@@ -12,6 +12,7 @@ import { libraryRoute } from "./routes/library";
 import { docsRoute } from "./routes/docs";
 import { adminRoute } from "./routes/admin";
 import { teamsRoute } from "./routes/teams";
+import { teamViewRoute } from "./routes/team-view";
 
 const routeTree = rootRoute.addChildren([
   homeRoute,
@@ -19,6 +20,7 @@ const routeTree = rootRoute.addChildren([
   libraryRoute,
   chatRoute,
   teamsRoute,
+  teamViewRoute,
   appDetailsRoute,
   dbBrowserRoute,
   neonBrowserRoute,

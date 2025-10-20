@@ -274,6 +274,13 @@ export const UserSettingsSchema = z.object({
     })
     .optional(),
 
+  // Notification preferences
+  notifications: z
+    .object({
+      soundEnabled: z.boolean().optional(),
+    })
+    .optional(),
+
   ////////////////////////////////
   // E2E TESTING ONLY.
   ////////////////////////////////

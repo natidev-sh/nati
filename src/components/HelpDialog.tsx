@@ -17,6 +17,7 @@ import {
   FileIcon,
   SparklesIcon,
   KeyboardIcon,
+  TicketIcon,
 } from "lucide-react";
 import { IpcClient } from "@/ipc/ipc_client";
 import { useNavigate } from "@tanstack/react-router";
@@ -462,6 +463,22 @@ Session ID: ${sessionId}
           </Button>
           <p className="text-sm text-gray-600 dark:text-gray-400 px-2">
             View all available editor keyboard bindings.
+          </p>
+        </div>
+
+        <div className="pt-4 border-t border-white/10">
+          <Button
+            variant="default"
+            onClick={() => {
+              IpcClient.getInstance().openExternalUrl('https://natiweb.vercel.app/support');
+              handleClose();
+            }}
+            className="w-full py-5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg"
+          >
+            <TicketIcon className="mr-2 h-5 w-5" /> Raise a Support Ticket
+          </Button>
+          <p className="text-sm text-gray-600 dark:text-gray-400 px-2 mt-2">
+            Contact our support team directly. Opens in your browser.
           </p>
         </div>
       </div>

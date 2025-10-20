@@ -20,7 +20,7 @@ import { useVersions } from "@/hooks/useVersions";
 import { useAtomValue, useSetAtom } from "jotai";
 import { selectedAppIdAtom, previewModeAtom } from "@/atoms/appAtoms";
 import { isPreviewOpenAtom, selectedFileAtom } from "@/atoms/viewAtoms";
-import { useMemo, useEffect, useState } from "react";
+import { useMemo, useEffect, useState, useRef } from "react";
 import { Files, FileCode2, AlertTriangle } from "lucide-react";
 import { showOpened } from "@/lib/toast";
 import { ChatImageLightBox } from "./ChatImageLightBox";
@@ -33,6 +33,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "../ui/tooltip";
+import { useSettings } from "@/hooks/useSettings";
 
 interface ChatMessageProps {
   message: Message;
@@ -51,9 +52,39 @@ const ChatMessage = ({ message, isLastMessage, prevAssistantCommit, nextAssistan
   const setPreviewOpen = useSetAtom(isPreviewOpenAtom);
   const setPreviewMode = useSetAtom(previewModeAtom);
   const setSelectedFile = useSetAtom(selectedFileAtom);
+  const { settings } = useSettings();
+  const prevStreamingRef = useRef(isStreaming);
+  
   const handleCopyFormatted = async () => {
     await copyMessageContent(message.content);
   };
+
+  // Play notification sound when agent finishes responding
+  useEffect(() => {
+    const soundEnabled = settings?.notifications?.soundEnabled ?? true;
+    
+    // Check if streaming just stopped for this assistant message
+    if (
+      soundEnabled &&
+      message.role === "assistant" &&
+      isLastMessage &&
+      prevStreamingRef.current === true &&
+      isStreaming === false &&
+      message.content // Only play if there's content
+    ) {
+      try {
+        const audio = new Audio('../../../assets/sound/notification.wav');
+        audio.volume = 0.5; // Set volume to 50%
+        audio.play().catch(err => {
+          console.warn('Failed to play notification sound:', err);
+        });
+      } catch (error) {
+        console.warn('Error creating audio:', error);
+      }
+    }
+
+    prevStreamingRef.current = isStreaming;
+  }, [isStreaming, isLastMessage, message.role, message.content, settings?.notifications?.soundEnabled]);
 
   // Detect and render Problem Fix Prompt (pretty UI)
   const isProblemFixPrompt = (text: string) =>

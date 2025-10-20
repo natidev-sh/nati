@@ -59,6 +59,7 @@ export const PreviewHeader = () => {
   const { restartApp, refreshAppIframe } = useRunApp();
 
   const isCompact = windowWidth < 860;
+  const isVeryCompact = windowWidth < 640; // Ultra compact mode for very small screens
 
   // Track window width
   useEffect(() => {
@@ -199,64 +200,133 @@ export const PreviewHeader = () => {
     return buttonContent;
   };
 
+  const getModeLabel = (mode: PreviewMode): string => {
+    switch (mode) {
+      case "preview": return "Preview";
+      case "code": return "Code";
+      case "problems": return "Problems";
+      case "configure": return "Configure";
+      case "publish": return "Publish";
+      default: return "Preview";
+    }
+  };
+
+  const getModeIcon = (mode: PreviewMode): React.ReactNode => {
+    switch (mode) {
+      case "preview": return <Eye size={14} />;
+      case "code": return <Code size={14} />;
+      case "problems": return <AlertTriangle size={14} />;
+      case "configure": return <Wrench size={14} />;
+      case "publish": return <Globe size={14} />;
+      default: return <Eye size={14} />;
+    }
+  };
+
   return (
     <TooltipProvider>
       <div className="flex items-center justify-between px-2 py-1 mt-1">
-        <div className="relative flex rounded-2xl p-0.5 gap-0.5 overflow-hidden">
-          <motion.div
-            className="absolute top-0.5 bottom-0.5 bg-[var(--background-lightest)] shadow rounded-md ring-1 ring-white/20 dark:ring-white/10"
-            animate={{
-              left: indicatorStyle.left,
-              width: indicatorStyle.width,
-            }}
-            transition={{
-              type: "spring",
-              stiffness: 600,
-              damping: 35,
-              mass: 0.6,
-            }}
-          />
-          {renderButton(
-            "preview",
-            previewRef,
-            <Eye size={14} />,
-            "Preview",
-            "preview-mode-button",
-          )}
-          {renderButton(
-            "problems",
-            problemsRef,
-            <AlertTriangle size={14} />,
-            "Problems",
-            "problems-mode-button",
-            displayCount && (
-              <span className="ml-0.5 px-1 py-0.5 text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-full min-w-[16px] text-center">
-                {displayCount}
-              </span>
-            ),
-          )}
-          {renderButton(
-            "code",
-            codeRef,
-            <Code size={14} />,
-            "Code",
-            "code-mode-button",
-          )}
-          {renderButton(
-            "configure",
-            configureRef,
-            <Wrench size={14} />,
-            "Configure",
-            "configure-mode-button",
-          )}
-          {renderButton(
-            "publish",
-            publishRef,
-            <Globe size={14} />,
-            "Publish",
-            "publish-mode-button",
-          )}
-        </div>
+        {isVeryCompact ? (
+          // Ultra compact mode: Show dropdown instead of all buttons
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className="no-app-region-drag flex items-center gap-1.5 px-2 py-1 rounded-md text-sm glass-button glass-hover glass-active outline-none focus-visible:ring-2 ring-white/40 dark:ring-white/15"
+              >
+                {getModeIcon(previewMode)}
+                <span className="text-xs font-medium">{getModeLabel(previewMode)}</span>
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-48">
+              <DropdownMenuItem onClick={() => selectPanel("preview")}>
+                <Eye size={16} />
+                <span>Preview</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => selectPanel("problems")}>
+                <AlertTriangle size={16} />
+                <div className="flex items-center justify-between flex-1">
+                  <span>Problems</span>
+                  {displayCount && (
+                    <span className="ml-2 px-1.5 py-0.5 text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-full">
+                      {displayCount}
+                    </span>
+                  )}
+                </div>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => selectPanel("code")}>
+                <Code size={16} />
+                <span>Code</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => selectPanel("configure")}>
+                <Wrench size={16} />
+                <span>Configure</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => selectPanel("publish")}>
+                <Globe size={16} />
+                <span>Publish</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : (
+          // Normal mode: Show all buttons
+          <div className="relative flex rounded-2xl p-0.5 gap-0.5 overflow-hidden">
+            <motion.div
+              className="absolute top-0.5 bottom-0.5 bg-[var(--background-lightest)] shadow rounded-md ring-1 ring-white/20 dark:ring-white/10"
+              animate={{
+                left: indicatorStyle.left,
+                width: indicatorStyle.width,
+              }}
+              transition={{
+                type: "spring",
+                stiffness: 600,
+                damping: 35,
+                mass: 0.6,
+              }}
+            />
+            {renderButton(
+              "preview",
+              previewRef,
+              <Eye size={14} />,
+              "Preview",
+              "preview-mode-button",
+            )}
+            {renderButton(
+              "problems",
+              problemsRef,
+              <AlertTriangle size={14} />,
+              "Problems",
+              "problems-mode-button",
+              displayCount && (
+                <span className="ml-0.5 px-1 py-0.5 text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-full min-w-[16px] text-center">
+                  {displayCount}
+                </span>
+              ),
+            )}
+            {renderButton(
+              "code",
+              codeRef,
+              <Code size={14} />,
+              "Code",
+              "code-mode-button",
+            )}
+            {renderButton(
+              "configure",
+              configureRef,
+              <Wrench size={14} />,
+              "Configure",
+              "configure-mode-button",
+            )}
+            {renderButton(
+              "publish",
+              publishRef,
+              <Globe size={14} />,
+              "Publish",
+              "publish-mode-button",
+            )}
+          </div>
+        )}
         <div className="flex items-center">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

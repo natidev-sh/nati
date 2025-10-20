@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { Users, Crown, Shield, Eye, Settings as SettingsIcon, Plus, Mail, UserPlus, Check, Copy, Github, ExternalLink, Folder } from "lucide-react";
 import { useSettings } from "@/hooks/useSettings";
 import { Button } from "@/components/ui/button";
@@ -54,6 +55,7 @@ interface SharedApp {
 
 export default function TeamsPage() {
   const { settings } = useSettings();
+  const navigate = useNavigate();
   const [teams, setTeams] = useState<Team[]>([]);
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
@@ -434,12 +436,8 @@ export default function TeamsPage() {
               {teams.map((team: any) => (
                 <button
                   key={team.id}
-                  onClick={() => setSelectedTeam(team)}
-                  className={`w-full text-left p-3 rounded-lg border transition-colors ${
-                    selectedTeam?.id === team.id
-                      ? 'border-primary bg-primary/10'
-                      : 'border-border hover:bg-accent'
-                  }`}
+                  onClick={() => navigate({ to: '/teams/$teamId', params: { teamId: team.id } })}
+                  className="w-full text-left p-3 rounded-lg border transition-colors border-border hover:bg-accent hover:border-primary"
                 >
                   <div className="flex items-center gap-2 mb-1">
                     <h4 className="font-semibold">{team.name}</h4>

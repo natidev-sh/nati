@@ -331,6 +331,7 @@ export default function HomePage() {
           <div className="mt-6">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-base font-semibold glass-contrast-text">Recent apps</h3>
+              <ImportAppButton />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {apps
