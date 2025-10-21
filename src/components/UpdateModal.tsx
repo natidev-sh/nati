@@ -26,6 +26,7 @@ export function UpdateModal() {
   const [error, setError] = useState<string | null>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   useEffect(() => {
     if (!window.electron) return;
@@ -33,26 +34,34 @@ export function UpdateModal() {
       const evt = (args?.[0] || {}) as UpdateStatusEvent;
       switch (evt.type) {
         case "available":
-          setAvailableVersion(evt.version ?? "");
+          setAvailableVersion(evt.version || "latest");
           setDownloadedVersion(null);
           setProgress(0);
           setError(null);
           setIsVisible(true);
           setIsDismissed(false);
+          setIsDownloading(true);
           break;
         case "download-progress":
           setProgress(Math.max(0, Math.min(100, evt.percent)));
           setBytesPerSecond(evt.bytesPerSecond || 0);
           break;
         case "downloaded":
-          setDownloadedVersion(evt.version ?? "");
+          // Use the version from the event, or fall back to "latest"
+          setDownloadedVersion((prev) => {
+            const version = evt.version || "latest";
+            setAvailableVersion(version);
+            return version;
+          });
           setProgress(100);
           setError(null);
           setIsVisible(true);
+          setIsDownloading(false);
           break;
         case "error":
           setError(evt.message);
           setIsVisible(true);
+          setIsDownloading(false);
           break;
       }
     });
@@ -187,7 +196,7 @@ export function UpdateModal() {
                 )}
 
                 {/* Downloading State */}
-                {availableVersion && !downloadedVersion && !error && (
+                {isDownloading && !downloadedVersion && !error && (
                   <div className="space-y-4">
                     <div className="flex items-start gap-3 p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
                       <Download className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
