@@ -107,6 +107,13 @@ export const TitleBar = () => {
           </div>
         )}
 
+        {/* Pro Credits Display */}
+        {settings?.natiUser?.isPro && (
+          <div className="no-app-region-drag mr-2">
+            <DyadProButton isDyadProEnabled={true} />
+          </div>
+        )}
+
         {/* User Authentication */}
         <div className="no-app-region-drag mr-2">
           <NatiAuthButton />
@@ -196,7 +203,11 @@ export function DyadProButton({
   isDyadProEnabled: boolean;
 }) {
   const { navigate } = useRouter();
-  const { userBudget } = useUserBudgetInfo();
+  const { userBudget, isLoadingUserBudget } = useUserBudgetInfo();
+  const { settings } = useSettings();
+  
+  const hasApiKey = !!settings?.providerSettings?.auto?.apiKey?.value;
+  
   return (
     <Button
       data-testid="title-bar-dyad-pro-button"
@@ -208,14 +219,22 @@ export function DyadProButton({
       }}
       variant="outline"
       className={cn(
-        "ml-1 no-app-region-drag h-7 bg-indigo-600 text-white dark:bg-indigo-600 dark:text-white text-xs px-2 pt-1 pb-1",
+        "ml-1 no-app-region-drag h-7 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs px-3 pt-1 pb-1 hover:from-indigo-700 hover:to-purple-700",
         !isDyadProEnabled && "bg-zinc-600 dark:bg-zinc-600",
       )}
       size="sm"
     >
       {isDyadProEnabled ? "Pro" : "Pro (off)"}
-      {userBudget && isDyadProEnabled && (
-        <AICreditStatus userBudget={userBudget} />
+      {isDyadProEnabled && (
+        <>
+          {isLoadingUserBudget ? (
+            <span className="text-xs pl-2 opacity-70">...</span>
+          ) : userBudget && hasApiKey ? (
+            <AICreditStatus userBudget={userBudget} />
+          ) : !hasApiKey ? (
+            <span className="text-xs pl-2 opacity-70">• Setup</span>
+          ) : null}
+        </>
       )}
     </Button>
   );
@@ -225,14 +244,21 @@ export function AICreditStatus({ userBudget }: { userBudget: UserBudgetInfo }) {
   const remaining = Math.round(
     userBudget.totalCredits - userBudget.usedCredits,
   );
+  const used = Math.round(userBudget.usedCredits);
+  const total = Math.round(userBudget.totalCredits);
+  
   return (
     <Tooltip>
-      <TooltipTrigger>
-        <div className="text-xs pl-1 mt-0.5">{remaining} credits</div>
+      <TooltipTrigger asChild>
+        <span className="text-xs pl-2 font-semibold">
+          • {remaining.toLocaleString()}
+        </span>
       </TooltipTrigger>
       <TooltipContent>
-        <div>
-          <p>Note: there is a slight delay in updating the credit status.</p>
+        <div className="space-y-1">
+          <p className="font-semibold">{remaining.toLocaleString()} credits remaining</p>
+          <p className="text-xs opacity-80">Used: {used.toLocaleString()} / {total.toLocaleString()}</p>
+          <p className="text-xs opacity-60">Updates after each AI request</p>
         </div>
       </TooltipContent>
     </Tooltip>

@@ -1,12 +1,12 @@
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "@tanstack/react-router";
-import { ArrowLeft, AlertTriangle } from "lucide-react";
+import { ArrowLeft, AlertTriangle, Sparkles } from "lucide-react";
 import { useSettings } from "@/hooks/useSettings";
 import { useLanguageModelProviders } from "@/hooks/useLanguageModelProviders";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import {} from "@/components/ui/accordion";
 
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -27,6 +27,7 @@ import ollamaLogo from "../../../assets/ai-logos/ollama-logo.svg";
 import azureLogo from "../../../assets/ai-logos/azureai-color.svg";
 import vertexLogo from "../../../assets/ai-logos/vertexai-logo.svg";
 import xaiLogo from "../../../assets/ai-logos/XAI-logo.svg";
+import natiLogo from "../../../assets/ai-logos/nati-logo.svg";
 
 interface ProviderSettingsPageProps {
   provider: string;
@@ -57,6 +58,7 @@ export function ProviderSettingsPage({ provider }: ProviderSettingsPageProps) {
 
   // Compute provider logo for header
   const providerLogo = useMemo(() => {
+    if (isDyad) return natiLogo;
     const id = (provider || "").toLowerCase();
     if (id.includes("openrouter")) return openrouterLogo;
     if (id.includes("openai") || id.includes("gpt")) return openaiLogo;
@@ -67,7 +69,7 @@ export function ProviderSettingsPage({ provider }: ProviderSettingsPageProps) {
     if (id.includes("xai") || id.includes("grok")) return xaiLogo;
     if (id.includes("gemini") || id.includes("google")) return googleGeminiLogo || googleLogo;
     return openrouterLogo;
-  }, [provider]);
+  }, [provider, isDyad]);
 
   const [apiKeyInput, setApiKeyInput] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -196,13 +198,18 @@ export function ProviderSettingsPage({ provider }: ProviderSettingsPageProps) {
   // --- Loading State for Providers ---
   if (providersLoading) {
     return (
-      <div className="min-h-screen px-8 py-4">
+      <div className="min-h-screen px-6 py-8">
         <div className="max-w-4xl mx-auto">
-          <Skeleton className="h-8 w-24 mb-4" />
-          <Skeleton className="h-10 w-1/2 mb-6" />
-          <Skeleton className="h-10 w-48 mb-4" />
-          <div className="space-y-4 mt-6">
-            <Skeleton className="h-40 w-full" />
+          <Skeleton className="h-8 w-32 mb-6" />
+          <div className="flex items-start gap-4 mb-8">
+            <Skeleton className="h-14 w-14 rounded-xl" />
+            <div className="flex-1">
+              <Skeleton className="h-8 w-48 mb-2" />
+              <Skeleton className="h-5 w-32" />
+            </div>
+          </div>
+          <div className="space-y-4">
+            <Skeleton className="h-32 w-full rounded-xl" />
           </div>
         </div>
       </div>
@@ -212,18 +219,18 @@ export function ProviderSettingsPage({ provider }: ProviderSettingsPageProps) {
   // --- Error State for Providers ---
   if (providersError) {
     return (
-      <div className="min-h-screen px-8 py-4">
+      <div className="min-h-screen px-6 py-8">
         <div className="max-w-4xl mx-auto">
           <Button
             onClick={() => router.history.back()}
-            variant="outline"
+            variant="ghost"
             size="sm"
-            className="flex items-center gap-2 mb-4 bg-(--background-lightest) py-5"
+            className="flex items-center gap-2 mb-6 -ml-2"
           >
             <ArrowLeft className="h-4 w-4" />
-            Go Back
+            Back to Providers
           </Button>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mr-3 mb-6">
+          <h1 className="text-3xl font-bold mb-6">
             Configure Provider
           </h1>
           <Alert variant="destructive">
@@ -241,18 +248,18 @@ export function ProviderSettingsPage({ provider }: ProviderSettingsPageProps) {
   // Handle case where provider is not found (e.g., invalid ID in URL)
   if (!providerData && !isDyad) {
     return (
-      <div className="min-h-screen px-8 py-4">
+      <div className="min-h-screen px-6 py-8">
         <div className="max-w-4xl mx-auto">
           <Button
             onClick={() => router.history.back()}
-            variant="outline"
+            variant="ghost"
             size="sm"
-            className="flex items-center gap-2 mb-4 bg-(--background-lightest) py-5"
+            className="flex items-center gap-2 mb-6 -ml-2"
           >
             <ArrowLeft className="h-4 w-4" />
-            Go Back
+            Back to Providers
           </Button>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mr-3 mb-6">
+          <h1 className="text-3xl font-bold mb-6">
             Provider Not Found
           </h1>
           <Alert variant="destructive">
@@ -268,7 +275,7 @@ export function ProviderSettingsPage({ provider }: ProviderSettingsPageProps) {
   }
 
   return (
-    <div className="min-h-screen px-8 py-4">
+    <div className="min-h-screen px-6 py-8">
       <div className="max-w-4xl mx-auto">
         <ProviderSettingsHeader
           providerDisplayName={providerDisplayName}
@@ -310,19 +317,28 @@ export function ProviderSettingsPage({ provider }: ProviderSettingsPageProps) {
         )}
 
         {isDyad && !settingsLoading && (
-          <div className="mt-6 flex items-center justify-between p-4 bg-(--background-lightest) rounded-lg border">
-            <div>
-              <h3 className="font-medium">Enable Nati Pro</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Toggle to enable Nati Pro
-              </p>
-            </div>
-            <Switch
-              checked={settings?.enableDyadPro}
-              onCheckedChange={handleToggleDyadPro}
-              disabled={isSaving}
-            />
-          </div>
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-purple-500/10 to-pink-500/10 flex items-center justify-center">
+                    <Sparkles className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg">Enable Nati Pro</CardTitle>
+                    <CardDescription>
+                      Access premium features and models
+                    </CardDescription>
+                  </div>
+                </div>
+                <Switch
+                  checked={settings?.enableDyadPro}
+                  onCheckedChange={handleToggleDyadPro}
+                  disabled={isSaving}
+                />
+              </div>
+            </CardHeader>
+          </Card>
         )}
 
         {/* Conditionally render CustomModelsSection */}

@@ -17,8 +17,10 @@ export function useUserBudgetInfo() {
       const ipcClient = IpcClient.getInstance();
       return ipcClient.getUserBudget();
     },
-    // This data is not critical and can be stale for a bit
-    staleTime: FIVE_MINUTES_IN_MS,
+    // Refetch every 30 seconds in the background to stay reasonably up-to-date
+    refetchInterval: 30000,
+    // Data can be stale for 10 seconds (will refetch on window focus or manual trigger)
+    staleTime: 10000,
     // If an error occurs (e.g. API key not set), it returns null.
     // We don't want react-query to retry automatically in such cases as it's not a transient network error.
     retry: false,

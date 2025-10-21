@@ -8,7 +8,7 @@ import { IS_TEST_BUILD } from "../utils/test_utils";
 const logger = log.scope("pro_handlers");
 const handle = createLoggedHandler(logger);
 
-const CONVERSION_RATIO = (10 * 3) / 2;
+const CONVERSION_RATIO = 15; // $1 in LiteLLM = 15 credits (matches website)
 
 export function registerProHandlers() {
   // This method should try to avoid throwing errors because this is auxiliary
@@ -25,21 +25,25 @@ export function registerProHandlers() {
     const apiKey = settings.providerSettings?.auto?.apiKey?.value;
 
     if (!apiKey) {
-      logger.error("LLM Gateway API key (Nati Pro) is not configured.");
+      logger.error("Nati Pro API key is not configured.");
       return null;
     }
 
-    const url = "https://llm-gateway.dyad.sh/user/info";
+    // Use Nati's Supabase Edge Function
+    const anonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2c3FpeWpmcXZkcHRqbnhlZmJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAwNDU5NTYsImV4cCI6MjA3NTYyMTk1Nn0.uc-wEsnkKtZjscmmJUIJ64qZJXGHQpp8cYwjEhWBivo";
+    const url = "https://cvsqiyjfqvdptjnxefbk.supabase.co/functions/v1/get-user-credits-desktop";
     const headers = {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
+      "Authorization": `Bearer ${anonKey}`,
+      "apikey": anonKey,
+      "x-nati-api-key": apiKey, // Send the user's Nati Pro API key
     };
 
     try {
-      // Use native fetch if available, otherwise node-fetch will be used via import
       const response = await fetch(url, {
-        method: "GET",
+        method: "POST",
         headers: headers,
+        body: JSON.stringify({ apiKey }),
       });
 
       if (!response.ok) {
@@ -51,12 +55,13 @@ export function registerProHandlers() {
       }
 
       const data = await response.json();
-      const userInfoData = data["user_info"];
       logger.info("Successfully fetched user budget information.");
+      
+      // Data comes from LiteLLM via the Edge Function
       return UserBudgetInfoSchema.parse({
-        usedCredits: userInfoData["spend"] * CONVERSION_RATIO,
-        totalCredits: userInfoData["max_budget"] * CONVERSION_RATIO,
-        budgetResetDate: new Date(userInfoData["budget_reset_at"]),
+        usedCredits: data.usedCredits,
+        totalCredits: data.totalCredits,
+        budgetResetDate: new Date(data.budgetResetDate),
       });
     } catch (error: any) {
       logger.error(`Error fetching user budget: ${error.message}`, error);

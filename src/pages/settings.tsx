@@ -502,10 +502,9 @@ export function GeneralSettings({ appVersion }: { appVersion: string | null }) {
         </div>
       </div>
 
-      {/* Release channel selection temporarily disabled */}
-      {/* <div className="mt-6">
+      <div className="mt-6">
         <ReleaseChannelSelector />
-      </div> */}
+      </div>
 
       <div className="mt-6">
         <RuntimeModeSelector />

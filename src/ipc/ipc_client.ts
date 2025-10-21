@@ -1364,6 +1364,7 @@ export class IpcClient {
   public startHelpChat(
     sessionId: string,
     message: string,
+    customApiKey: string | undefined,
     options: {
       onChunk: (delta: string) => void;
       onEnd: () => void;
@@ -1372,7 +1373,7 @@ export class IpcClient {
   ): void {
     this.helpStreams.set(sessionId, options);
     this.ipcRenderer
-      .invoke("help:chat:start", { sessionId, message })
+      .invoke("help:chat:start", { sessionId, message, customApiKey })
       .catch((err) => {
         this.helpStreams.delete(sessionId);
         showError(err);

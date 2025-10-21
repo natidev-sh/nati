@@ -20,7 +20,12 @@ import {
 const SUPABASE_URL = 'https://cvsqiyjfqvdptjnxefbk.supabase.co'
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2c3FpeWpmcXZkcHRqbnhlZmJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAwNDU5NTYsImV4cCI6MjA3NTYyMTk1Nn0.uc-wEsnkKtZjscmmJUIJ64qZJXGHQpp8cYwjEhWBivo'
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    autoRefreshToken: false, // Disable auto-refresh to prevent 400 errors
+    persistSession: false, // Don't persist session in desktop app
+  }
+})
 
 interface UserProfile {
   first_name: string | null;
@@ -61,10 +66,19 @@ export function NatiAuthButton() {
         // Set auth session
         // Try to set session, but don't fail if tokens are invalid
         try {
-          await supabase.auth.setSession({
+          const { error: sessionError } = await supabase.auth.setSession({
             access_token: natiUser.accessToken.value,
             refresh_token: natiUser.refreshToken?.value || '',
           });
+          
+          if (sessionError) {
+            console.warn('Session setup failed:', sessionError.message);
+            // If tokens are expired, user needs to re-authenticate
+            if (sessionError.message.includes('Invalid') || sessionError.message.includes('expired')) {
+              console.warn('Tokens expired, user should re-authenticate');
+            }
+            // Don't throw, just log and continue
+          }
         } catch (authError) {
           console.warn('Session setup failed, continuing anyway:', authError);
         }
@@ -112,13 +126,29 @@ export function NatiAuthButton() {
     handleDeepLink();
   }, [lastDeepLink, refreshSettings]);
 
+  // Reset logging in state when user logs out
+  useEffect(() => {
+    if (!isLoggedIn) {
+      setIsLoggingIn(false);
+      setProfile(null);
+    }
+  }, [isLoggedIn]);
+
   const handleLogin = async () => {
     setIsLoggingIn(true);
     try {
       // Open natiweb login page which will redirect back to the app
       await IpcClient.getInstance().openExternalUrl(
-        "https://natiweb.vercel.app/desktop-auth?redirect=dyad://nati-auth-return"
+        "https://natiweb.vercel.app/desktop-auth?redirect=nati://nati-auth-return"
       );
+      
+      // Set a timeout to reset login state if auth doesn't complete in 5 minutes
+      // This handles cases where user closes browser without completing auth
+      setTimeout(() => {
+        if (!isLoggedIn) {
+          setIsLoggingIn(false);
+        }
+      }, 300000); // 5 minutes
     } catch (error) {
       console.error("Failed to open login page:", error);
       toast.error("Failed to open login page");
@@ -131,9 +161,18 @@ export function NatiAuthButton() {
       // Clear user data from settings
       await IpcClient.getInstance().logoutNatiUser();
       await refreshSettings();
+      
+      // Reset login state and clear profile
+      setIsLoggingIn(false);
+      setProfile(null);
+      hasShownToast.current = false;
+      
       toast.success("Successfully logged out");
     } catch (error) {
       console.error("Failed to logout:", error);
+      
+      // Reset login state even on error
+      setIsLoggingIn(false);
       
       // Fallback: If IPC handler not available, show helpful message
       const errorMessage = error instanceof Error ? error.message : String(error);

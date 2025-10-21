@@ -14,6 +14,7 @@ import {
 import { showError, showMcpConsentToast } from "./lib/toast";
 import { IpcClient } from "./ipc/ipc_client";
 import { toast } from "./lib/toast";
+import { UpdateModal } from "./components/UpdateModal";
 
 // @ts-ignore
 console.log("Running in mode:", import.meta.env.MODE);
@@ -215,7 +216,12 @@ function App() {
     return () => unsubscribe();
   }, []);
 
-  return <RouterProvider router={router} />;
+  return (
+    <>
+      <UpdateModal />
+      <RouterProvider router={router} />
+    </>
+  );
 }
 
 createRoot(document.getElementById("root")!).render(

@@ -260,6 +260,12 @@ export const UserBudgetInfoSchema = z.object({
 });
 export type UserBudgetInfo = z.infer<typeof UserBudgetInfoSchema>;
 
+export interface StartHelpChatParams {
+  sessionId: string;
+  message: string;
+  customApiKey?: string;
+}
+
 export interface ComponentSelection {
   id: string;
   name: string;
