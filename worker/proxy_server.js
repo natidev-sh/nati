@@ -68,18 +68,18 @@ try {
 try {
   const dyadComponentSelectorClientPath = path.join(
     __dirname,
-    "dyad-component-selector-client.js",
+    "nati-component-selector-client.js",
   );
   dyadComponentSelectorClientContent = fs.readFileSync(
     dyadComponentSelectorClientPath,
     "utf-8",
   );
   parentPort?.postMessage(
-    "[proxy-worker] dyad-component-selector-client.js loaded.",
+    "[proxy-worker] nati-component-selector-client.js loaded.",
   );
 } catch (error) {
   parentPort?.postMessage(
-    `[proxy-worker] Failed to read dyad-component-selector-client.js: ${error.message}`,
+    `[proxy-worker] Failed to read nati-component-selector-client.js: ${error.message}`,
   );
 }
 

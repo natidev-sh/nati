@@ -2,7 +2,7 @@ import log from "electron-log";
 import { db } from "../../db";
 import { eq } from "drizzle-orm";
 import { apps } from "../../db/schema";
-import { getSupabaseClient, executeSupabaseSql } from "../../supabase_admin/supabase_management_client";
+import { getSupabaseClient, executeSupabaseSql, getSupabaseBranches, getSupabaseProjectName } from "../../supabase_admin/supabase_management_client";
 import { SUPABASE_SCHEMA_QUERY } from "../../supabase_admin/supabase_schema_query";
 import {
   createLoggedHandler,
@@ -38,11 +38,44 @@ export function registerSupabaseHandlers() {
   handle("supabase:unset-app-project", async (_, { app }: { app: number }) => {
     await db
       .update(apps)
-      .set({ supabaseProjectId: null })
+      .set({ supabaseProjectId: null, supabaseBranchId: null })
       .where(eq(apps.id, app));
 
     logger.info(`Removed Supabase project association for app ${app}`);
   });
+
+  // Get branches for a Supabase project
+  handle("supabase:get-branches", async (_, { appId }: { appId: number }) => {
+    const app = await db.query.apps.findFirst({
+      where: eq(apps.id, appId),
+    });
+
+    if (!app?.supabaseProjectId) {
+      throw new Error("App is not connected to a Supabase project");
+    }
+
+    const branches = await getSupabaseBranches(app.supabaseProjectId);
+    const projectName = await getSupabaseProjectName(app.supabaseProjectId);
+
+    return {
+      projectId: app.supabaseProjectId,
+      projectName,
+      branches,
+    };
+  });
+
+  // Set the branch for an app
+  handle(
+    "supabase:set-branch",
+    async (_, { appId, branchId }: { appId: number; branchId: string }) => {
+      await db
+        .update(apps)
+        .set({ supabaseBranchId: branchId })
+        .where(eq(apps.id, appId));
+
+      logger.info(`Set Supabase branch ${branchId} for app ${appId}`);
+    },
+  );
 
   testOnlyHandle(
     "supabase:fake-connect-and-set-project",

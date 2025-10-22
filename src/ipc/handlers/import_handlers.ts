@@ -10,9 +10,12 @@ import { chats } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import git from "isomorphic-git";
 
-import { ImportAppParams, ImportAppResult } from "../ipc_types";
+import { ImportAppParams, ImportAppResult, ImportGithubRepoParams, ImportGithubRepoResult } from "../ipc_types";
 import { copyDirectoryRecursive } from "../utils/file_utils";
 import { gitCommit } from "../utils/git_utils";
+import { spawn } from "child_process";
+import { promisify } from "util";
+const execPromise = promisify(require("child_process").exec);
 
 const logger = log.scope("import-handlers");
 const handle = createLoggedHandler(logger);
@@ -145,6 +148,94 @@ export function registerImportHandlers() {
           appId: app.id,
         })
         .returning();
+      return { appId: app.id, chatId: chat.id };
+    },
+  );
+
+  // Handler for importing from GitHub
+  handle(
+    "import-github-repo",
+    async (
+      _,
+      {
+        githubUrl,
+        branch = "main",
+        appName,
+        installCommand,
+        startCommand,
+      }: ImportGithubRepoParams,
+    ): Promise<ImportGithubRepoResult> => {
+      const destPath = getDyadAppPath(appName);
+
+      // Check if the app already exists
+      const errorMessage = "An app with this name already exists";
+      try {
+        await fs.access(destPath);
+        throw new Error(errorMessage);
+      } catch (error: any) {
+        if (error.message === errorMessage) {
+          throw error;
+        }
+      }
+
+      // Parse GitHub URL to extract org and repo
+      let githubOrg: string | null = null;
+      let githubRepo: string | null = null;
+      let githubBranch: string | null = branch;
+
+      try {
+        const match = githubUrl.match(/github\.com[\/:]([^\/]+)\/([^\/]+?)(\.git)?$/);
+        if (match) {
+          githubOrg = match[1];
+          githubRepo = match[2].replace(/\.git$/, "");
+        }
+      } catch (error) {
+        logger.warn("Could not parse GitHub URL:", error);
+      }
+
+      // Clone the repository using git command
+      logger.info(`Cloning GitHub repository: ${githubUrl} to ${destPath}`);
+      try {
+        const cloneCommand = `git clone --branch ${branch} --depth 1 "${githubUrl}" "${destPath}"`;
+        await execPromise(cloneCommand);
+        logger.info("Repository cloned successfully");
+      } catch (error: any) {
+        logger.error("Failed to clone repository:", error);
+        throw new Error(
+          `Failed to clone repository: ${error.message || "Unknown error"}. Make sure git is installed and the URL is correct.`,
+        );
+      }
+
+      // Verify the clone was successful
+      try {
+        await fs.access(destPath);
+      } catch {
+        throw new Error("Repository was not cloned successfully");
+      }
+
+      // Create a new app in the database
+      const [app] = await db
+        .insert(apps)
+        .values({
+          name: appName,
+          path: appName,
+          githubOrg: githubOrg,
+          githubRepo: githubRepo,
+          githubBranch: githubBranch,
+          installCommand: installCommand ?? null,
+          startCommand: startCommand ?? null,
+        })
+        .returning();
+
+      // Create an initial chat for this app
+      const [chat] = await db
+        .insert(chats)
+        .values({
+          appId: app.id,
+        })
+        .returning();
+
+      logger.info(`GitHub repo imported successfully as app ${app.id}`);
       return { appId: app.id, chatId: chat.id };
     },
   );

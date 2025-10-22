@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -11,7 +11,8 @@ import { Button } from "@/components/ui/button";
 import { IpcClient } from "@/ipc/ipc_client";
 import { useMutation } from "@tanstack/react-query";
 import { showError, showSuccess } from "@/lib/toast";
-import { Folder, X, Loader2, Info } from "lucide-react";
+import { Folder, X, Loader2, Info, Github, Check, Clipboard } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -27,6 +28,8 @@ import {
 import { selectedAppIdAtom } from "@/atoms/appAtoms";
 import { useSetAtom } from "jotai";
 import { useLoadApps } from "@/hooks/useLoadApps";
+import { useSettings } from "@/hooks/useSettings";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Accordion,
   AccordionContent,
@@ -40,7 +43,19 @@ interface ImportAppDialogProps {
 }
 
 export function ImportAppDialog({ isOpen, onClose }: ImportAppDialogProps) {
+  const [importMode, setImportMode] = useState<"local" | "github">("local");
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
+  const [githubUrl, setGithubUrl] = useState<string>("");
+  const [githubBranch, setGithubBranch] = useState<string>("main");
+  const [githubRepos, setGithubRepos] = useState<Array<{ name: string; full_name: string; private: boolean }>>([]);
+  const [selectedRepo, setSelectedRepo] = useState<string>("");
+  const [isLoadingRepos, setIsLoadingRepos] = useState(false);
+  const [githubUserCode, setGithubUserCode] = useState<string | null>(null);
+  const [githubVerificationUri, setGithubVerificationUri] = useState<string | null>(null);
+  const [githubError, setGithubError] = useState<string | null>(null);
+  const [isConnectingToGithub, setIsConnectingToGithub] = useState(false);
+  const [githubStatusMessage, setGithubStatusMessage] = useState<string | null>(null);
+  const [codeCopied, setCodeCopied] = useState(false);
   const [hasAiRules, setHasAiRules] = useState<boolean | null>(null);
   const [customAppName, setCustomAppName] = useState<string>("");
   const [nameExists, setNameExists] = useState<boolean>(false);
@@ -51,6 +66,8 @@ export function ImportAppDialog({ isOpen, onClose }: ImportAppDialogProps) {
   const { streamMessage } = useStreamChat({ hasChatId: false });
   const { refreshApps } = useLoadApps();
   const setSelectedAppId = useSetAtom(selectedAppIdAtom);
+  const { settings, refreshSettings } = useSettings();
+  const isGithubConnected = !!settings?.githubAccessToken?.value;
 
   const checkAppName = async (name: string): Promise<void> => {
     setIsCheckingName(true);
@@ -93,13 +110,24 @@ export function ImportAppDialog({ isOpen, onClose }: ImportAppDialogProps) {
 
   const importAppMutation = useMutation({
     mutationFn: async () => {
-      if (!selectedPath) throw new Error("No folder selected");
-      return IpcClient.getInstance().importApp({
-        path: selectedPath,
-        appName: customAppName,
-        installCommand: installCommand || undefined,
-        startCommand: startCommand || undefined,
-      });
+      if (importMode === "local") {
+        if (!selectedPath) throw new Error("No folder selected");
+        return IpcClient.getInstance().importApp({
+          path: selectedPath,
+          appName: customAppName,
+          installCommand: installCommand || undefined,
+          startCommand: startCommand || undefined,
+        });
+      } else {
+        if (!githubUrl) throw new Error("No GitHub URL provided");
+        return IpcClient.getInstance().importGithubRepo({
+          githubUrl: githubUrl.trim(),
+          branch: githubBranch.trim() || "main",
+          appName: customAppName,
+          installCommand: installCommand || undefined,
+          startCommand: startCommand || undefined,
+        });
+      }
     },
     onSuccess: async (result) => {
       showSuccess(
@@ -135,12 +163,117 @@ export function ImportAppDialog({ isOpen, onClose }: ImportAppDialogProps) {
 
   const handleClear = () => {
     setSelectedPath(null);
+    setGithubUrl("");
+    setGithubBranch("main");
     setHasAiRules(null);
     setCustomAppName("");
     setNameExists(false);
     setInstallCommand("pnpm install");
     setStartCommand("pnpm dev");
   };
+
+  // Load GitHub repos when dialog opens and user is authenticated
+  useEffect(() => {
+    if (isOpen && importMode === "github" && isGithubConnected) {
+      loadGithubRepos();
+    }
+  }, [isOpen, importMode, isGithubConnected]);
+
+  const loadGithubRepos = async () => {
+    setIsLoadingRepos(true);
+    try {
+      const repos = await IpcClient.getInstance().listGithubRepos();
+      setGithubRepos(repos);
+    } catch (error) {
+      showError("Failed to load GitHub repositories");
+    } finally {
+      setIsLoadingRepos(false);
+    }
+  };
+
+  const handleRepoSelect = (fullName: string) => {
+    setSelectedRepo(fullName);
+    const [owner, repo] = fullName.split("/");
+    setGithubUrl(`https://github.com/${fullName}`);
+    setCustomAppName(repo);
+    checkAppName(repo);
+  };
+
+  const handleGithubUrlChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const url = e.target.value;
+    setGithubUrl(url);
+    setSelectedRepo(""); // Clear selected repo when manually typing URL
+    
+    // Extract repo name from URL for default app name
+    if (url.trim()) {
+      const match = url.match(/github\.com[\/:]([^\/]+)\/([^\/]+?)(\.git)?$/);
+      if (match) {
+        const repoName = match[2].replace(/\.git$/, "");
+        setCustomAppName(repoName);
+        await checkAppName(repoName);
+      }
+    }
+  };
+
+  const startGithubOAuth = () => {
+    setIsConnectingToGithub(true);
+    setGithubError(null);
+    setGithubUserCode(null);
+    setGithubVerificationUri(null);
+    setGithubStatusMessage("Requesting device code from GitHub...");
+    IpcClient.getInstance().startGithubDeviceFlow(null);
+  };
+
+  // Set up GitHub Device Flow event listeners
+  useEffect(() => {
+    const cleanupFunctions: (() => void)[] = [];
+
+    // Listener for updates (user code, verification uri, status messages)
+    const removeUpdateListener = IpcClient.getInstance().onGithubDeviceFlowUpdate((data) => {
+      if (data.userCode) {
+        setGithubUserCode(data.userCode);
+      }
+      if (data.verificationUri) {
+        setGithubVerificationUri(data.verificationUri);
+      }
+      if (data.message) {
+        setGithubStatusMessage(data.message);
+      }
+      setGithubError(null);
+    });
+    cleanupFunctions.push(removeUpdateListener);
+
+    // Listener for success
+    const removeSuccessListener = IpcClient.getInstance().onGithubDeviceFlowSuccess(async () => {
+      setGithubStatusMessage("Successfully connected to GitHub!");
+      setGithubUserCode(null);
+      setGithubVerificationUri(null);
+      setGithubError(null);
+      setIsConnectingToGithub(false);
+      
+      // Refresh settings to get the updated GitHub token
+      await refreshSettings();
+      
+      // Load repos now that we have the token
+      await loadGithubRepos();
+    });
+    cleanupFunctions.push(removeSuccessListener);
+
+    // Listener for errors
+    const removeErrorListener = IpcClient.getInstance().onGithubDeviceFlowError((data) => {
+      setGithubError(data.error || "An unknown error occurred.");
+      setGithubStatusMessage(null);
+      setGithubUserCode(null);
+      setGithubVerificationUri(null);
+      setIsConnectingToGithub(false);
+    });
+    cleanupFunctions.push(removeErrorListener);
+
+    return () => {
+      cleanupFunctions.forEach((cleanup) => cleanup());
+    };
+  }, []);
+
 
   const handleAppNameChange = async (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -163,7 +296,7 @@ export function ImportAppDialog({ isOpen, onClose }: ImportAppDialogProps) {
           <DialogHeader className="space-y-1">
             <DialogTitle className="text-lg">Import App</DialogTitle>
             <DialogDescription className="text-sm">
-              Select a pre-existing application folder to import into Nati.
+              Import from a local folder or clone from GitHub.
             </DialogDescription>
           </DialogHeader>
         </div>
@@ -178,7 +311,20 @@ export function ImportAppDialog({ isOpen, onClose }: ImportAppDialogProps) {
         </div>
 
         <div className="px-4 py-4">
-          {!selectedPath ? (
+          <Tabs value={importMode} onValueChange={(v: string) => setImportMode(v as "local" | "github")} className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-4">
+              <TabsTrigger value="local" className="flex items-center gap-2">
+                <Folder className="h-4 w-4" />
+                Local Folder
+              </TabsTrigger>
+              <TabsTrigger value="github" className="flex items-center gap-2">
+                <Github className="h-4 w-4" />
+                GitHub
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="local" className="mt-0">
+              {!selectedPath ? (
             <Button
               onClick={handleSelectFolder}
               disabled={selectFolderMutation.isPending}
@@ -308,6 +454,233 @@ export function ImportAppDialog({ isOpen, onClose }: ImportAppDialogProps) {
               )}
             </div>
           )}
+            </TabsContent>
+
+            <TabsContent value="github" className="mt-0 space-y-4">
+              {!isGithubConnected ? (
+                <>
+                  <div className="flex flex-col items-center gap-4 py-8">
+                    <Github className="h-12 w-12 text-muted-foreground" />
+                    <div className="text-center space-y-2">
+                      <p className="text-sm font-medium">Connect your GitHub account</p>
+                      <p className="text-xs text-muted-foreground max-w-sm">
+                        Connect to GitHub to browse and import your repositories directly
+                      </p>
+                    </div>
+                    <Button
+                      onClick={startGithubOAuth}
+                      className="glass-button glass-hover"
+                      disabled={isConnectingToGithub}
+                    >
+                      <Github className="mr-2 h-4 w-4" />
+                      {isConnectingToGithub ? "Connecting..." : "Connect to GitHub"}
+                    </Button>
+                  </div>
+
+                  {/* GitHub Device Flow UI */}
+                  {(githubUserCode || githubStatusMessage || githubError) && (
+                    <div className="p-4 rounded-xl glass-surface border">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Github className="h-4 w-4" />
+                        <h4 className="text-sm font-semibold">GitHub Connection</h4>
+                        <span className="text-xs px-2 py-0.5 rounded bg-muted text-muted-foreground">Device flow</span>
+                      </div>
+
+                      {githubError && (
+                        <div className="mb-3 text-sm text-red-600 dark:text-red-400">
+                          Error: {githubError}
+                        </div>
+                      )}
+
+                      {githubUserCode && githubVerificationUri && (
+                        <div className="space-y-3">
+                          <div className="flex items-start gap-3">
+                            <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs">1</span>
+                            <div className="flex-1">
+                              <div className="text-sm font-medium">Open GitHub device page</div>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="mt-1"
+                                onClick={() => IpcClient.getInstance().openExternalUrl(githubVerificationUri)}
+                              >
+                                https://github.com/login/device
+                              </Button>
+                            </div>
+                          </div>
+                          <div className="flex items-start gap-3">
+                            <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs">2</span>
+                            <div className="flex-1">
+                              <div className="text-sm font-medium">Enter this code</div>
+                              <div className="mt-1 flex items-center gap-2">
+                                <code className="px-3 py-1.5 rounded bg-muted font-mono text-base">
+                                  {githubUserCode}
+                                </code>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    if (githubUserCode) {
+                                      navigator.clipboard.writeText(githubUserCode).then(() => {
+                                        setCodeCopied(true);
+                                        setTimeout(() => setCodeCopied(false), 2000);
+                                      });
+                                    }
+                                  }}
+                                >
+                                  {codeCopied ? <Check className="h-4 w-4" /> : <Clipboard className="h-4 w-4" />}
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {githubStatusMessage && (
+                        <div className="mt-3 text-sm text-muted-foreground flex items-center gap-2">
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                          <span>{githubStatusMessage}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  {githubRepos.length > 0 && (
+                    <div className="space-y-2">
+                      <Label className="text-sm ml-2">Your Repositories</Label>
+                      <Select value={selectedRepo} onValueChange={handleRepoSelect}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select a repository" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {githubRepos.map((repo) => (
+                            <SelectItem key={repo.full_name} value={repo.full_name}>
+                              <div className="flex items-center gap-2">
+                                <span>{repo.full_name}</span>
+                                {repo.private && (
+                                  <span className="text-xs text-muted-foreground">(private)</span>
+                                )}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground ml-2">
+                        {isLoadingRepos ? "Loading repositories..." : `${githubRepos.length} repositories found`}
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="relative flex items-center gap-2">
+                    <div className="flex-1 h-px bg-border" />
+                    <span className="text-xs text-muted-foreground">or</span>
+                    <div className="flex-1 h-px bg-border" />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm ml-2">GitHub Repository URL</Label>
+                    <Input
+                      value={githubUrl}
+                      onChange={handleGithubUrlChange}
+                      placeholder="https://github.com/username/repo"
+                      className="w-full select-text font-mono text-sm"
+                      disabled={importAppMutation.isPending}
+                    />
+                    <p className="text-xs text-muted-foreground ml-2">
+                      Or paste any GitHub repository URL
+                    </p>
+                  </div>
+                </>
+              )}
+
+              <div className="space-y-2">
+                <Label className="text-sm ml-2">Branch (optional)</Label>
+                <Input
+                  value={githubBranch}
+                  onChange={(e) => setGithubBranch(e.target.value)}
+                  placeholder="main"
+                  className="w-full select-text"
+                  disabled={importAppMutation.isPending}
+                />
+              </div>
+
+              {githubUrl && (
+                <>
+                  <div className="space-y-2">
+                    {nameExists && (
+                      <p className="text-sm text-yellow-500">
+                        An app with this name already exists. Please choose a
+                        different name:
+                      </p>
+                    )}
+                    <div className="relative">
+                      <Label className="text-sm ml-2 mb-2">App name</Label>
+                      <Input
+                        value={customAppName}
+                        onChange={handleAppNameChange}
+                        placeholder="Enter app name"
+                        className="w-full pr-8 select-text"
+                        disabled={importAppMutation.isPending}
+                      />
+                      {isCheckingName && (
+                        <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <Accordion type="single" collapsible>
+                    <AccordionItem value="advanced-options">
+                      <AccordionTrigger className="text-sm hover:no-underline">
+                        Advanced options
+                      </AccordionTrigger>
+                      <AccordionContent className="space-y-4">
+                        <div className="grid gap-2">
+                          <Label className="text-sm ml-2 mb-2">
+                            Install command
+                          </Label>
+                          <Input
+                            value={installCommand}
+                            onChange={(e) => setInstallCommand(e.target.value)}
+                            placeholder="pnpm install"
+                            disabled={importAppMutation.isPending}
+                            className="select-text"
+                          />
+                        </div>
+                        <div className="grid gap-2">
+                          <Label className="text-sm ml-2 mb-2">Start command</Label>
+                          <Input
+                            value={startCommand}
+                            onChange={(e) => setStartCommand(e.target.value)}
+                            placeholder="pnpm dev"
+                            disabled={importAppMutation.isPending}
+                            className="select-text"
+                          />
+                        </div>
+                        {!commandsValid && (
+                          <p className="text-sm text-red-500">
+                            Both commands are required when customizing.
+                          </p>
+                        )}
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
+                </>
+              )}
+
+              {importAppMutation.isPending && (
+                <div className="flex items-center justify-center space-x-2 text-sm text-muted-foreground animate-pulse">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Cloning repository...</span>
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
         </div>
 
         <DialogFooter className="px-4 pb-4 pt-2">
@@ -322,10 +695,16 @@ export function ImportAppDialog({ isOpen, onClose }: ImportAppDialogProps) {
           <Button
             onClick={handleImport}
             disabled={
-              !selectedPath ||
-              importAppMutation.isPending ||
-              nameExists ||
-              !commandsValid
+              importMode === "local"
+                ? !selectedPath ||
+                  importAppMutation.isPending ||
+                  nameExists ||
+                  !commandsValid
+                : !githubUrl.trim() ||
+                  !customAppName.trim() ||
+                  importAppMutation.isPending ||
+                  nameExists ||
+                  !commandsValid
             }
             className="min-w-[90px] glass-button glass-hover glass-active"
           >

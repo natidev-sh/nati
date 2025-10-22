@@ -99,8 +99,8 @@
       label.appendChild(editLine);
     }
 
-    const name = el.dataset.dyadName || "<unknown>";
-    const file = (el.dataset.dyadId || "").split(":")[0];
+    const name = el.dataset.natiName || "<unknown>";
+    const file = (el.dataset.natiId || "").split(":")[0];
 
     const nameEl = document.createElement("div");
     nameEl.textContent = name;
@@ -119,7 +119,7 @@
     if (state.type !== "inspecting") return;
 
     let el = e.target;
-    while (el && !el.dataset.dyadId) el = el.parentElement;
+    while (el && !el.dataset.natiId) el = el.parentElement;
 
     if (state.element === el) return;
     state.element = el;
@@ -142,8 +142,8 @@
     window.parent.postMessage(
       {
         type: "dyad-component-selected",
-        id: state.element.dataset.dyadId,
-        name: state.element.dataset.dyadName,
+        id: state.element.dataset.natiId,
+        name: state.element.dataset.natiName,
       },
       "*",
     );
@@ -202,8 +202,8 @@
   /* ---------- message bridge -------------------------------------------- */
   window.addEventListener("message", (e) => {
     if (e.source !== window.parent) return;
-    if (e.data.type === "activate-dyad-component-selector") activate();
-    if (e.data.type === "deactivate-dyad-component-selector") deactivate();
+    if (e.data.type === "activate-nati-component-selector") activate();
+    if (e.data.type === "deactivate-nati-component-selector") deactivate();
   });
 
   // Always listen for keyboard shortcuts
@@ -217,10 +217,10 @@
       return;
     }
     setTimeout(() => {
-      if (document.body.querySelector("[data-dyad-id]")) {
+      if (document.body.querySelector("[nati-data-id]")) {
         window.parent.postMessage(
           {
-            type: "dyad-component-selector-initialized",
+            type: "nati-component-selector-initialized",
           },
           "*",
         );

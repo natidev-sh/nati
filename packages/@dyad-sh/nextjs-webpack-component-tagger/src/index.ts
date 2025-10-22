@@ -6,7 +6,7 @@ import { walk } from "estree-walker";
 const VALID_EXTENSIONS = new Set([".jsx", ".tsx"]);
 
 /**
- * A webpack loader that adds `data-dyad-*` attributes to JSX elements.
+ * A webpack loader that adds `nati-data-*` attributes to JSX elements.
  */
 export default function dyadTaggerLoader(this: any, code: string) {
   // Signal that this is an async loader
@@ -48,20 +48,20 @@ export default function dyadTaggerLoader(this: any, code: string) {
             const alreadyTagged = node.attributes?.some(
               (attr: any) =>
                 attr.type === "JSXAttribute" &&
-                attr.name?.name === "data-dyad-id",
+                attr.name?.name === "nati-data-id",
             );
             if (alreadyTagged) return;
 
-            // Build the dyad ID
+            // Build the nati ID
             const loc = node.loc?.start;
             if (!loc) return;
-            const dyadId = `${fileRelative}:${loc.line}:${loc.column}`;
+            const natiId = `${fileRelative}:${loc.line}:${loc.column}`;
 
             // Inject the attributes
             if (node.name.end != null) {
               ms.appendLeft(
                 node.name.end,
-                ` data-dyad-id="${dyadId}" data-dyad-name="${tagName}"`,
+                ` nati-data-id="${natiId}" nati-data-name="${tagName}"`,
               );
               transformCount++;
             }

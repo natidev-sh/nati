@@ -18,7 +18,9 @@ import {
   SparklesIcon,
   KeyboardIcon,
   TicketIcon,
+  MessageSquare,
 } from "lucide-react";
+import { FaDiscord } from "react-icons/fa";
 import { IpcClient } from "@/ipc/ipc_client";
 import { useNavigate } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
@@ -236,7 +238,7 @@ Session ID: ${sessionId}
 
     const encodedBody = encodeURIComponent(issueBody);
     const encodedTitle = encodeURIComponent("[session report] <add title>");
-    const githubIssueUrl = `https://github.com/dyad-sh/dyad/issues/new?title=${encodedTitle}&labels=support&body=${encodedBody}`;
+    const githubIssueUrl = `https://github.com/natidev-sh/nati/issues/new?title=${encodedTitle}&labels=support&body=${encodedBody}`;
 
     IpcClient.getInstance().openExternalUrl(githubIssueUrl);
     handleClose();
@@ -463,6 +465,23 @@ Session ID: ${sessionId}
           </Button>
           <p className="text-sm text-gray-600 dark:text-gray-400 px-2">
             View all available editor keyboard bindings.
+          </p>
+        </div>
+
+        <div className="flex flex-col space-y-2">
+          <Button
+            variant="outline"
+            onClick={() => {
+              IpcClient.getInstance().openExternalUrl('https://discord.gg/d9jajsdrWn');
+              handleClose();
+            }}
+            className="w-full py-5 rounded-xl glass-surface glass-hover ring-1 ring-white/40 dark:ring-white/10 hover:ring-[#5865F2]/40 hover:bg-[#5865F2]/5 transition-all"
+          >
+            <FaDiscord className="mr-2 h-5 w-5 text-[#5865F2]" />
+            Join our Discord
+          </Button>
+          <p className="text-sm text-gray-600 dark:text-gray-400 px-2">
+            Get help from the community and chat with the team.
           </p>
         </div>
 

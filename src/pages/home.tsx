@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/dialog";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Loader2, ShieldCheck, Sparkles } from "lucide-react";
+import { ExternalLink, Loader2, ShieldCheck, Sparkles, MessageSquare } from "lucide-react";
 import { ImportAppButton } from "@/components/ImportAppButton";
 import { showError } from "@/lib/toast";
 import { invalidateAppQuery } from "@/hooks/useLoadApp";
@@ -279,7 +279,7 @@ export default function HomePage() {
 
   // Main Home Page Content
   return (
-    <div className="flex flex-col items-center justify-center max-w-3xl w-full m-auto p-8">
+    <div className="relative flex flex-col items-center justify-center max-w-3xl w-full m-auto p-8">
       <SetupBanner />
 
       <div className="w-full">

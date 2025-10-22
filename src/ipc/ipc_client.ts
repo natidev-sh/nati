@@ -32,6 +32,8 @@ import type {
   ApproveProposalResult,
   ImportAppResult,
   ImportAppParams,
+  ImportGithubRepoParams,
+  ImportGithubRepoResult,
   RenameBranchParams,
   UserBudgetInfo,
   CopyAppParams,
@@ -57,6 +59,9 @@ import type {
   NeonProject,
   GetNeonProjectParams,
   GetNeonProjectResponse,
+  GetSupabaseBranchesParams,
+  GetSupabaseBranchesResponse,
+  SetSupabaseBranchParams,
   RevertVersionResponse,
   RevertVersionParams,
   RespondToAppInputParams,
@@ -1017,6 +1022,14 @@ export class IpcClient {
     });
   }
 
+  public async getSupabaseBranches(params: GetSupabaseBranchesParams): Promise<GetSupabaseBranchesResponse> {
+    return this.ipcRenderer.invoke("supabase:get-branches", params);
+  }
+
+  public async setSupabaseBranch(params: SetSupabaseBranchParams): Promise<void> {
+    await this.ipcRenderer.invoke("supabase:set-branch", params);
+  }
+
   public async fakeHandleSupabaseConnect(params: {
     appId: number;
     fakeProjectId: string;
@@ -1268,6 +1281,12 @@ export class IpcClient {
 
   public async importApp(params: ImportAppParams): Promise<ImportAppResult> {
     return this.ipcRenderer.invoke("import-app", params);
+  }
+
+  public async importGithubRepo(
+    params: ImportGithubRepoParams
+  ): Promise<ImportGithubRepoResult> {
+    return this.ipcRenderer.invoke("import-github-repo", params);
   }
 
   async checkAppName(params: {

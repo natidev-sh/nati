@@ -201,7 +201,7 @@ export const GITHUB_TIP: MessageConfig = {
     {
       type: "link",
       content: "GitHub",
-      url: "https://github.com/dyad-sh/dyad",
+      url: "https://github.com/natidev-sh/nati",
     },
   ],
 };

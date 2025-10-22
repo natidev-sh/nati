@@ -26,6 +26,7 @@ import { selectedAppIdAtom } from "@/atoms/appAtoms";
 import { IpcClient } from "@/ipc/ipc_client";
 import { useNavigate } from "@tanstack/react-router";
 import { NeonConfigure } from "./NeonConfigure";
+import { SupabaseConfigure } from "./SupabaseConfigure";
 
 // Optional icons used in the quick app settings
 import { Loader2, Folder, GitBranch, History, BookOpen, PlusCircle, Trash2 as TrashIcon } from "lucide-react";
@@ -497,8 +498,9 @@ export const ConfigurePanel = () => {
         </CardContent>
       </Card>
 
-      {/* Neon Database Configuration */}
+      {/* Database Configurations */}
       <div className="grid grid-cols-1 gap-6">
+        <SupabaseConfigure />
         <NeonConfigure />
       </div>
 

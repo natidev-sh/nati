@@ -138,17 +138,29 @@ const LoadingOverlay = ({
     "Waiting for preview to be ready",
   ],
   tickMs = 900,
+  onForceReload,
 }: {
   title?: string;
   stages?: string[];
   tickMs?: number;
+  onForceReload?: () => void;
 }) => {
   const [idx, setIdx] = useState(0);
+  const [showForceReload, setShowForceReload] = useState(false);
+  
   useEffect(() => {
     if (idx >= stages.length - 1) return;
     const t = setTimeout(() => setIdx((v) => Math.min(v + 1, stages.length - 1)), tickMs);
     return () => clearTimeout(t);
   }, [idx, stages.length, tickMs]);
+  
+  // Show force reload button after 30 seconds
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setShowForceReload(true);
+    }, 30000);
+    return () => clearTimeout(timeout);
+  }, []);
 
   return (
     <div className="absolute inset-0 flex items-center justify-center">
@@ -183,6 +195,16 @@ const LoadingOverlay = ({
           <div className="mt-4 text-[11px] text-muted-foreground">
             Tip: You can continue editing files while the server starts.
           </div>
+          {showForceReload && onForceReload && (
+            <div className="mt-3 text-center">
+              <button
+                onClick={onForceReload}
+                className="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-sm font-medium"
+              >
+                Taking too long? Force reload
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -223,7 +245,7 @@ export const PreviewIframe = ({ loading }: { loading: boolean }) => {
     if (!selectedComponentPreview) {
       if (iframeRef.current?.contentWindow) {
         iframeRef.current.contentWindow.postMessage(
-          { type: "deactivate-dyad-component-selector" },
+          { type: "deactivate-nati-component-selector" },
           "*",
         );
       }
@@ -239,7 +261,7 @@ export const PreviewIframe = ({ loading }: { loading: boolean }) => {
         return;
       }
 
-      if (event.data?.type === "dyad-component-selector-initialized") {
+      if (event.data?.type === "nati-component-selector-initialized") {
         setIsComponentSelectorInitialized(true);
         return;
       }
@@ -362,8 +384,8 @@ export const PreviewIframe = ({ loading }: { loading: boolean }) => {
       iframeRef.current.contentWindow.postMessage(
         {
           type: newIsPicking
-            ? "activate-dyad-component-selector"
-            : "deactivate-dyad-component-selector",
+            ? "activate-nati-component-selector"
+            : "deactivate-nati-component-selector",
         },
         "*",
       );
@@ -606,7 +628,10 @@ export const PreviewIframe = ({ loading }: { loading: boolean }) => {
         />
 
         {!appUrl ? (
-          <LoadingOverlay title="Starting your app server..." />
+          <LoadingOverlay 
+            title="Starting your app server..." 
+            onForceReload={handleReload}
+          />
         ) : (
           <iframe
             sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-orientation-lock allow-pointer-lock allow-presentation allow-downloads"

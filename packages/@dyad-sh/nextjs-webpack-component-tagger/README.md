@@ -1,6 +1,6 @@
 # @dyad-sh/nextjs-webpack-component-tagger
 
-A webpack loader for Next.js that automatically adds `data-dyad-id` and `data-dyad-name` attributes to your React components. This is useful for identifying components in the DOM, for example for testing or analytics.
+A webpack loader for Next.js that automatically adds `nati-data-id` and `nati-data-name` attributes to your React components. This is useful for identifying components in the DOM, for example for testing or analytics.
 
 ## Installation
 
@@ -36,11 +36,11 @@ const nextConfig: NextConfig = {
 export default nextConfig;
 ```
 
-The loader will automatically add `data-dyad-id` and `data-dyad-name` to all your React components.
+The loader will automatically add `nati-data-id` and `nati-data-name` to all your React components.
 
-The `data-dyad-id` will be a unique identifier for each component instance, in the format `path/to/file.tsx:line:column`.
+The `nati-data-id` will be a unique identifier for each component instance, in the format `path/to/file.tsx:line:column`.
 
-The `data-dyad-name` will be the name of the component.
+The `nati-data-name` will be the name of the component.
 
 ## Testing & Publishing
 

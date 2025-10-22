@@ -139,6 +139,62 @@ export async function getSupabaseProjectName(
   return project?.name || `<project not found for: ${projectId}>`;
 }
 
+export async function getSupabaseBranches(
+  projectId: string,
+): Promise<any[]> {
+  if (IS_TEST_BUILD) {
+    return [
+      {
+        id: "fake-main-branch",
+        name: "main",
+        is_default: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+      {
+        id: "fake-preview-branch",
+        name: "preview-123",
+        is_default: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        git_branch: "feature/test",
+      },
+    ];
+  }
+
+  const supabase = await getSupabaseClient();
+  
+  try {
+    // Fetch branches from Supabase Management API
+    // Note: The actual endpoint might be different based on the SDK
+    const response = await fetch(
+      `https://api.supabase.com/v1/projects/${projectId}/branches`,
+      {
+        headers: {
+          Authorization: `Bearer ${(supabase as any).options.accessToken}`,
+          "Content-Type": "application/json",
+        },
+      },
+    );
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        // Project doesn't have branching enabled or endpoint doesn't exist
+        logger.warn(`Branching not available for project ${projectId}`);
+        return [];
+      }
+      throw await createResponseError(response, "fetch branches");
+    }
+
+    const branches = await response.json();
+    return Array.isArray(branches) ? branches : [];
+  } catch (error) {
+    logger.error("Error fetching Supabase branches:", error);
+    // Return empty array if branching is not supported
+    return [];
+  }
+}
+
 export async function executeSupabaseSql({
   supabaseProjectId,
   query,
@@ -191,7 +247,6 @@ export async function deploySupabaseFunctions({
     JSON.stringify({
       entrypoint_path: "index.ts",
       name: functionName,
-      // See: https://github.com/dyad-sh/dyad/issues/1010
       verify_jwt: false,
     }),
   );

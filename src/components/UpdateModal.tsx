@@ -9,8 +9,11 @@ import {
   Sparkles,
   X,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
+import { getChangelog } from "@/lib/changelogs";
 
 type UpdateStatusEvent =
   | { type: "available"; version?: string }
@@ -27,6 +30,7 @@ export function UpdateModal() {
   const [isVisible, setIsVisible] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [showWhatsNew, setShowWhatsNew] = useState(false);
 
   useEffect(() => {
     if (!window.electron) return;
@@ -90,6 +94,9 @@ export function UpdateModal() {
   };
 
   const show = isVisible && !isDismissed;
+  
+  // Get changelog data for the available version
+  const changelog = availableVersion ? getChangelog(availableVersion) : null;
 
   return (
     <AnimatePresence>
@@ -255,19 +262,111 @@ export function UpdateModal() {
                   </div>
                 )}
 
-                {/* What's New Link */}
+                {/* What's New Section */}
                 {availableVersion && (
-                  <button
-                    onClick={() => {
-                      window.electron?.ipcRenderer.invoke(
-                        "open-external-url",
-                        `https://github.com/natidev-sh/nati/releases/tag/v${availableVersion}`
-                      );
-                    }}
-                    className="w-full text-sm text-center text-primary hover:underline"
-                  >
-                    View changelog →
-                  </button>
+                  <div className="space-y-3">
+                    <button
+                      onClick={() => setShowWhatsNew(!showWhatsNew)}
+                      className="w-full flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors text-left"
+                    >
+                      <span className="text-sm font-medium">What's New</span>
+                      {showWhatsNew ? (
+                        <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </button>
+                    
+                    <AnimatePresence>
+                      {showWhatsNew && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="p-4 rounded-lg bg-muted/30 space-y-3 text-sm">
+                            {/* Features */}
+                            {changelog?.features && changelog.features.length > 0 && (
+                              <div>
+                                <h4 className="font-semibold text-foreground mb-2 flex items-center gap-2">
+                                  <Sparkles className="h-4 w-4 text-primary" />
+                                  New Features
+                                </h4>
+                                <ul className="space-y-1.5 text-muted-foreground ml-6">
+                                  {changelog.features.map((item, index) => (
+                                    <li key={index} className="flex items-start gap-2">
+                                      <span className="text-primary mt-1">•</span>
+                                      <span>
+                                        <strong>{item.title}:</strong> {item.description}
+                                      </span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            
+                            {/* Bug Fixes */}
+                            {changelog?.bugfixes && changelog.bugfixes.length > 0 && (
+                              <div>
+                                <h4 className="font-semibold text-foreground mb-2">🐛 Bug Fixes</h4>
+                                <ul className="space-y-1.5 text-muted-foreground ml-6">
+                                  {changelog.bugfixes.map((item, index) => (
+                                    <li key={index} className="flex items-start gap-2">
+                                      <span className="text-primary mt-1">•</span>
+                                      <span>
+                                        {item.title && <strong>{item.title}: </strong>}
+                                        {item.description}
+                                      </span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            
+                            {/* Improvements */}
+                            {changelog?.improvements && changelog.improvements.length > 0 && (
+                              <div>
+                                <h4 className="font-semibold text-foreground mb-2">✨ Improvements</h4>
+                                <ul className="space-y-1.5 text-muted-foreground ml-6">
+                                  {changelog.improvements.map((item, index) => (
+                                    <li key={index} className="flex items-start gap-2">
+                                      <span className="text-primary mt-1">•</span>
+                                      <span>
+                                        {item.title && <strong>{item.title}: </strong>}
+                                        {item.description}
+                                      </span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            
+                            {/* No changelog available fallback */}
+                            {!changelog && (
+                              <div className="text-center text-muted-foreground py-2">
+                                <p>Release notes are being prepared...</p>
+                                <p className="text-xs mt-1">Check GitHub for details</p>
+                              </div>
+                            )}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                    
+                    <button
+                      onClick={() => {
+                        window.electron?.ipcRenderer.invoke(
+                          "open-external-url",
+                          `https://github.com/natidev-sh/nati/releases/tag/v${availableVersion}`
+                        );
+                      }}
+                      className="w-full text-sm text-center text-primary hover:underline"
+                    >
+                      View full changelog on GitHub →
+                    </button>
+                  </div>
                 )}
               </div>
             </div>

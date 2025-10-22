@@ -401,7 +401,7 @@ function handleDeepLinkReturn(url: string) {
     });
     return;
   }
-  // dyad://nati-auth-return?userId=123&email=user@example.com&name=John&avatar=https://...&accessToken=abc&refreshToken=xyz&expiresIn=3600&isPro=true&isAdmin=false
+  // dyad://nati-auth-return?userId=123&email=user@example.com&name=John&avatar=https://...&accessToken=abc&refreshToken=xyz&expiresIn=3600&isPro=true&isAdmin=false&githubToken=ghp_xxx
   if (parsed.hostname === "nati-auth-return") {
     const userId = parsed.searchParams.get("userId");
     const email = parsed.searchParams.get("email");
@@ -412,6 +412,7 @@ function handleDeepLinkReturn(url: string) {
     const expiresIn = Number(parsed.searchParams.get("expiresIn"));
     const isPro = parsed.searchParams.get("isPro") === "true";
     const isAdmin = parsed.searchParams.get("isAdmin") === "true";
+    const githubToken = parsed.searchParams.get("githubToken") || undefined;
     
     if (!userId || !email || !accessToken || !refreshToken || !expiresIn) {
       dialog.showErrorBox(
@@ -431,6 +432,7 @@ function handleDeepLinkReturn(url: string) {
       expiresIn,
       isPro,
       isAdmin,
+      githubToken,
     });
     
     // Send message to renderer to trigger re-render

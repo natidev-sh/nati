@@ -90,6 +90,7 @@ export interface App {
   githubBranch: string | null;
   supabaseProjectId: string | null;
   supabaseProjectName: string | null;
+  supabaseBranchId: string | null;
   neonProjectId: string | null;
   neonDevelopmentBranchId: string | null;
   neonPreviewBranchId: string | null;
@@ -243,6 +244,19 @@ export interface CopyAppParams {
 }
 
 export interface ImportAppResult {
+  appId: number;
+  chatId: number;
+}
+
+export interface ImportGithubRepoParams {
+  githubUrl: string;
+  branch?: string;
+  appName: string;
+  installCommand?: string;
+  startCommand?: string;
+}
+
+export interface ImportGithubRepoResult {
   appId: number;
   chatId: number;
 }
@@ -419,6 +433,33 @@ export interface GetNeonProjectResponse {
   projectName: string;
   orgId: string;
   branches: NeonBranch[];
+}
+
+// --- Supabase Branch Types ---
+export interface SupabaseBranch {
+  id: string;
+  name: string;
+  is_default: boolean;
+  created_at: string;
+  updated_at: string;
+  parent_branch_id?: string;
+  git_branch?: string;
+  persistent?: boolean;
+}
+
+export interface GetSupabaseBranchesParams {
+  appId: number;
+}
+
+export interface GetSupabaseBranchesResponse {
+  projectId: string;
+  projectName: string;
+  branches: SupabaseBranch[];
+}
+
+export interface SetSupabaseBranchParams {
+  appId: number;
+  branchId: string;
 }
 
 export interface RevertVersionParams {

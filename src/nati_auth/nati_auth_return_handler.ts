@@ -14,6 +14,7 @@ export function handleNatiAuthReturn({
   expiresIn,
   isPro,
   isAdmin,
+  githubToken,
 }: {
   userId: string;
   email: string;
@@ -24,10 +25,11 @@ export function handleNatiAuthReturn({
   expiresIn: number;
   isPro?: boolean;
   isAdmin?: boolean;
+  githubToken?: string;
 }) {
-  logger.info(`User authenticated: ${email} (Pro: ${isPro}, Admin: ${isAdmin})`);
+  logger.info(`User authenticated: ${email} (Pro: ${isPro}, Admin: ${isAdmin}, GitHub: ${!!githubToken})`);
   
-  writeSettings({
+  const settings: any = {
     natiUser: {
       id: userId,
       email,
@@ -44,7 +46,17 @@ export function handleNatiAuthReturn({
       expiresIn,
       tokenTimestamp: Math.floor(Date.now() / 1000),
     },
-  });
+  };
+  
+  // If GitHub token is provided, store it
+  if (githubToken) {
+    settings.githubAccessToken = {
+      value: githubToken,
+    };
+    logger.info('GitHub token synced from web app');
+  }
+  
+  writeSettings(settings);
   
   // Start sending heartbeat to enable remote control
   startDesktopHeartbeat();

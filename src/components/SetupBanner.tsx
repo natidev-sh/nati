@@ -10,10 +10,11 @@ import {
   Settings,
   GlobeIcon,
   Star,
-  Github,
+  MessageSquare,
 } from "lucide-react";
+import { FaDiscord } from "react-icons/fa";
 import { providerSettingsRoute } from "@/routes/settings/providers/$provider";
-
+import { Github } from '@lobehub/icons';
 import SetupProviderCard from "@/components/SetupProviderCard";
 import { UpdateBanner } from "@/components/UpdateBanner";
 
@@ -128,37 +129,68 @@ export function SetupBanner() {
   if (itemsNeedAction.length === 0) {
     return (
       <div className="flex flex-col items-center space-y-6 py-8">
-        {/* GitHub Star CTA with enhanced design */}
-        <button
-          type="button"
-          onClick={() =>
-            IpcClient.getInstance().openExternalUrl(
-              "https://github.com/natidev-sh/nati",
-            )
-          }
-          className={cn(
-            "group relative inline-flex items-center gap-2.5 rounded-full px-5 py-2.5",
-            "text-sm font-semibold",
-            "bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border-2",
-            "border-zinc-200/80 dark:border-zinc-700/80",
-            "shadow-[0_8px_30px_rgba(0,0,0,0.12)] hover:shadow-[0_20px_60px_rgba(237,50,121,0.3)]",
-            "transition-all duration-500 ease-out",
-            "hover:scale-105 active:scale-95",
-            "cursor-pointer"
-          )}
-        >
+        {/* Social CTAs with enhanced design */}
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() =>
+              IpcClient.getInstance().openExternalUrl(
+                "https://github.com/natidev-sh/nati",
+              )
+            }
+            className={cn(
+              "group relative inline-flex items-center gap-2.5 rounded-full px-5 py-2.5",
+              "text-sm font-semibold",
+              "bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border-2",
+              "border-zinc-200/80 dark:border-zinc-700/80",
+              "shadow-[0_8px_30px_rgba(0,0,0,0.12)] hover:shadow-[0_20px_60px_rgba(237,50,121,0.3)]",
+              "transition-all duration-500 ease-out",
+              "hover:scale-105 active:scale-95",
+              "cursor-pointer"
+            )}
+          >
           {/* Animated gradient ring */}
           <span className="pointer-events-none absolute -inset-1 rounded-full bg-gradient-to-r from-[#ed3279] via-fuchsia-500 to-[#6a4cff] opacity-0 group-hover:opacity-100 blur-lg transition-opacity duration-500" />
           <span className="relative flex items-center gap-2.5">
             <span className="flex items-center justify-center h-7 w-7 rounded-full bg-gradient-to-br from-[#ed3279] via-fuchsia-500 to-[#6a4cff] text-white shadow-lg animate-pulse">
-              <Star className="h-4 w-4 fill-current" />
+              <Github className="h-4 w-4 fill-current" />
             </span>
             <span className="bg-gradient-to-r from-zinc-700 to-zinc-900 dark:from-zinc-100 dark:to-zinc-300 bg-clip-text text-transparent">
               Star us on GitHub
             </span>
-            <Github className="h-4.5 w-4.5 text-zinc-600 group-hover:text-zinc-900 dark:text-zinc-400 dark:group-hover:text-zinc-100 transition-colors duration-300" />
+          
           </span>
-        </button>
+          </button>
+
+          <button
+            type="button"
+            onClick={() =>
+              IpcClient.getInstance().openExternalUrl(
+                "https://discord.gg/d9jajsdrWn",
+              )
+            }
+            className={cn(
+              "group relative inline-flex items-center gap-2.5 rounded-full px-5 py-2.5",
+              "text-sm font-semibold",
+              "bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border-2",
+              "border-zinc-200/80 dark:border-zinc-700/80",
+              "shadow-[0_8px_30px_rgba(0,0,0,0.12)] hover:shadow-[0_20px_60px_rgba(88,101,242,0.3)]",
+              "transition-all duration-500 ease-out",
+              "hover:scale-105 active:scale-95",
+              "cursor-pointer"
+            )}
+          >
+            <span className="pointer-events-none absolute -inset-1 rounded-full bg-gradient-to-r from-[#5865F2] via-[#7289DA] to-[#5865F2] opacity-0 group-hover:opacity-100 blur-lg transition-opacity duration-500" />
+            <span className="relative flex items-center gap-2.5">
+              <span className="flex items-center justify-center h-7 w-7 rounded-full bg-gradient-to-br from-[#5865F2] to-[#7289DA] text-white shadow-lg animate-pulse">
+                <FaDiscord className="h-4 w-4 fill-current" />
+              </span>
+              <span className="bg-gradient-to-r from-zinc-700 to-zinc-900 dark:from-zinc-100 dark:to-zinc-300 bg-clip-text text-transparent">
+                Join our Discord
+              </span>
+            </span>
+          </button>
+        </div>
 
         {/* Hero heading with enhanced typography */}
         <div className="text-center space-y-3">

@@ -138,8 +138,17 @@ export type GitHubSecrets = z.infer<typeof GitHubSecretsSchema>;
 
 export const GithubUserSchema = z.object({
   email: z.string(),
+  login: z.string().optional(),
+  name: z.string().optional(),
+  avatarUrl: z.string().optional(),
 });
 export type GithubUser = z.infer<typeof GithubUserSchema>;
+
+export const GithubSchema = z.object({
+  accessToken: SecretSchema.optional(),
+  user: GithubUserSchema.optional(),
+});
+export type Github = z.infer<typeof GithubSchema>;
 
 export const SupabaseSchema = z.object({
   accessToken: SecretSchema.optional(),
@@ -226,6 +235,7 @@ export const UserSettingsSchema = z.object({
   providerSettings: z.record(z.string(), ProviderSettingSchema),
   githubUser: GithubUserSchema.optional(),
   githubAccessToken: SecretSchema.optional(),
+  github: GithubSchema.optional(),
   vercelAccessToken: SecretSchema.optional(),
   supabase: SupabaseSchema.optional(),
   neon: NeonSchema.optional(),
