@@ -57,6 +57,31 @@ export function NatiAuthButton() {
     }
   }, [natiUser?.isPro, natiUser?.isAdmin]);
 
+  // Ensure user is registered in LiteLLM when Pro is enabled
+  useEffect(() => {
+    const registerProUser = async () => {
+      if (isPro && natiUser?.id && settings?.enableDyadPro) {
+        try {
+          await IpcClient.getInstance().ensureProUser(natiUser.id);
+          console.log("Pro user registered in LiteLLM");
+        } catch (error) {
+          console.error("Failed to register Pro user:", error);
+        }
+      }
+    };
+    registerProUser();
+  }, [isPro, natiUser?.id, settings?.enableDyadPro]);
+
+  // Debug: Log budget info
+  useEffect(() => {
+    console.log("Budget Debug:", {
+      isPro,
+      userBudget,
+      hasUserBudget: !!userBudget,
+      enableDyadPro: settings?.enableDyadPro,
+    });
+  }, [isPro, userBudget, settings?.enableDyadPro]);
+
   // Fetch user profile from Supabase
   useEffect(() => {
     async function fetchProfile() {
@@ -311,7 +336,7 @@ export function NatiAuthButton() {
         <DropdownMenuSeparator />
         
         {/* Credit Display */}
-        {isPro && userBudget && (
+        {isPro && (
           <>
             <div className="px-2 py-2">
               <div className="p-3 rounded-lg bg-gradient-to-br from-zinc-100 to-zinc-50 dark:from-zinc-800 dark:to-zinc-900 border border-zinc-200 dark:border-zinc-700">
@@ -320,21 +345,31 @@ export function NatiAuthButton() {
                     <Zap className="h-4 w-4 text-blue-500" />
                     <span className="text-xs font-semibold text-zinc-600 dark:text-zinc-300">AI Credits</span>
                   </div>
-                  <span className="text-xs font-bold text-zinc-900 dark:text-zinc-100">
-                    {Math.round(userBudget.totalCredits - userBudget.usedCredits)}
-                  </span>
+                  {userBudget ? (
+                    <span className="text-xs font-bold text-zinc-900 dark:text-zinc-100">
+                      {Math.round(userBudget.totalCredits - userBudget.usedCredits)}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-zinc-500 dark:text-zinc-400">Loading...</span>
+                  )}
                 </div>
-                <div className="h-1.5 rounded-full overflow-hidden bg-zinc-200 dark:bg-zinc-700">
-                  <div
-                    className="h-full bg-gradient-to-r from-blue-500 to-purple-600 transition-all duration-300"
-                    style={{ 
-                      width: `${Math.max(0, Math.min(100, ((userBudget.totalCredits - userBudget.usedCredits) / userBudget.totalCredits) * 100))}%` 
-                    }}
-                  />
-                </div>
-                <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-1">
-                  Resets {new Date(userBudget.budgetResetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                </p>
+                {userBudget ? (
+                  <>
+                    <div className="h-1.5 rounded-full overflow-hidden bg-zinc-200 dark:bg-zinc-700">
+                      <div
+                        className="h-full bg-gradient-to-r from-blue-500 to-purple-600 transition-all duration-300"
+                        style={{ 
+                          width: `${Math.max(0, Math.min(100, ((userBudget.totalCredits - userBudget.usedCredits) / userBudget.totalCredits) * 100))}%` 
+                        }}
+                      />
+                    </div>
+                    <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-1">
+                      Resets {new Date(userBudget.budgetResetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </p>
+                  </>
+                ) : (
+                  <div className="h-1.5 rounded-full overflow-hidden bg-zinc-200 dark:bg-zinc-700 animate-pulse" />
+                )}
               </div>
             </div>
             <DropdownMenuSeparator />

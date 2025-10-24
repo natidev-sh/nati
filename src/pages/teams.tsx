@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { Users, Crown, Shield, Eye, Settings as SettingsIcon, Plus, Mail, UserPlus, Check, Copy, Github, ExternalLink, Folder } from "lucide-react";
+import { Users, Crown, Shield, Eye, Settings as SettingsIcon, Plus, Mail, UserPlus, Check, Copy, Github, ExternalLink, Folder, ChevronRight } from "lucide-react";
 import { useSettings } from "@/hooks/useSettings";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -95,10 +95,13 @@ export default function TeamsPage() {
     initSession()
   }, [settings?.natiUser])
   
-  // Fetch team members when team is selected
+  // Fetch team members when team is selected (lazy load)
   useEffect(() => {
     async function fetchMembers() {
-      if (!selectedTeam) return
+      if (!selectedTeam) {
+        setTeamMembers([])
+        return
+      }
       
       try {
         const { data, error } = await supabase
@@ -111,6 +114,7 @@ export default function TeamsPage() {
           `)
           .eq('team_id', selectedTeam.id)
           .eq('is_active', true)
+          .limit(10) // Limit initial load
 
         if (error) {
           console.error('Error fetching members:', error)
@@ -131,13 +135,19 @@ export default function TeamsPage() {
       }
     }
     
-    fetchMembers()
+    // Debounce to avoid rapid fetches
+    const timer = setTimeout(fetchMembers, 100)
+    return () => clearTimeout(timer)
   }, [selectedTeam])
   
-  // Fetch shared apps when team is selected
+  // Fetch shared apps when team is selected (lazy load)
   useEffect(() => {
     async function fetchSharedApps() {
-      if (!selectedTeam) return
+      if (!selectedTeam) {
+        setSharedApps([])
+        setLoadingApps(false)
+        return
+      }
       
       setLoadingApps(true)
       try {
@@ -149,6 +159,7 @@ export default function TeamsPage() {
             user_apps!inner(id, name, path, github_repo)
           `)
           .eq('team_id', selectedTeam.id)
+          .limit(20) // Limit initial load
         
         if (error) throw error
         
@@ -169,10 +180,12 @@ export default function TeamsPage() {
       }
     }
     
-    fetchSharedApps()
+    // Debounce to avoid rapid fetches
+    const timer = setTimeout(fetchSharedApps, 100)
+    return () => clearTimeout(timer)
   }, [selectedTeam])
   
-  // Fetch teams
+  // Fetch teams (optimized - only fetch team list, not all details)
   useEffect(() => {
     async function loadTeams() {
       if (!settings?.natiUser?.id) return
@@ -182,8 +195,8 @@ export default function TeamsPage() {
         const { data, error } = await supabase
           .from('team_members')
           .select(`
-            *,
-            team:teams(*)
+            role,
+            team:teams(id, name, slug)
           `)
           .eq('user_id', settings.natiUser.id)
           .eq('is_active', true)
@@ -199,9 +212,7 @@ export default function TeamsPage() {
         })) || []
         
         setTeams(teamsData)
-        if (teamsData.length > 0 && !selectedTeam) {
-          setSelectedTeam(teamsData[0])
-        }
+        // Don't auto-select team to avoid loading data immediately
       } catch (error) {
         console.error('Error loading teams:', error)
       } finally {
@@ -219,7 +230,9 @@ export default function TeamsPage() {
     
     setCreating(true)
     try {
-      const slug = newTeamName.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+      // Generate unique slug with timestamp to avoid conflicts
+      const baseSlug = newTeamName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+      const slug = `${baseSlug}-${Date.now()}`
       
       // Create team
       const { data: team, error: teamError } = await supabase
@@ -242,7 +255,8 @@ export default function TeamsPage() {
         team_id: team.id,
         user_id: settings.natiUser.id,
         role: 'owner',
-        joined_at: new Date().toISOString()
+        joined_at: new Date().toISOString(),
+        is_active: true
       })
 
       if (memberError) {
@@ -434,19 +448,45 @@ export default function TeamsPage() {
                 Your Teams
               </h3>
               {teams.map((team: any) => (
-                <button
+                <div
                   key={team.id}
-                  onClick={() => navigate({ to: '/teams/$teamId', params: { teamId: team.id } })}
-                  className="w-full text-left p-3 rounded-lg border transition-colors border-border hover:bg-accent hover:border-primary"
+                  onClick={() => setSelectedTeam(team)}
+                  className={`p-4 rounded-lg border transition-all cursor-pointer ${
+                    selectedTeam?.id === team.id
+                      ? 'border-primary bg-primary/5'
+                      : 'border-border hover:bg-accent hover:border-primary/50'
+                  }`}
                 >
-                  <div className="flex items-center gap-2 mb-1">
-                    <h4 className="font-semibold">{team.name}</h4>
-                    {getRoleIcon(team.myRole)}
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold">
+                        {team.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <h4 className="font-semibold">{team.name}</h4>
+                        <div className="flex items-center gap-1.5">
+                          {getRoleIcon(team.myRole)}
+                          <p className="text-xs text-muted-foreground capitalize">
+                            {team.myRole}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <p className="text-xs text-muted-foreground capitalize">
-                    {team.myRole}
-                  </p>
-                </button>
+                  {selectedTeam?.id === team.id && (
+                    <Button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate({ to: '/teams/$teamId', params: { teamId: team.id } });
+                      }}
+                      size="sm"
+                      className="w-full mt-2"
+                    >
+                      <ChevronRight className="h-4 w-4 mr-2" />
+                      Open Team Workspace
+                    </Button>
+                  )}
+                </div>
               ))}
             </div>
 

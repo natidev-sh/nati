@@ -9,10 +9,14 @@
 litellm_settings:
   num_retries: 2
   timeout: 120
-
-# Database required for virtual key endpoints (/key/*)
+  max_end_user_budget: 100.0  # Default budget for end users (in USD)
+  success_callback: ["langfuse"]  # Track all requests
+  
+# Database required for virtual key endpoints (/key/*) and budget tracking
 general_settings:
   database_url: ${DATABASE_URL}
+  master_key: ${LITELLM_MASTER_KEY}  # Required for budget management
+  store_model_in_db: true  # Store all requests in database
 
 # Define models via model_list. You can add/remove models as needed.
 model_list:

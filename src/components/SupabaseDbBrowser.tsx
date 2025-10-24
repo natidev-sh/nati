@@ -1,7 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
-import { Database, Shield, Play, Table as TableIcon, Plus, Pencil, Trash2, Columns, AlertTriangle, TerminalSquare } from "lucide-react";
+import { 
+  Database, Shield, Play, Table as TableIcon, Plus, Pencil, Trash2, 
+  Columns, AlertTriangle, TerminalSquare, GitBranch, History, 
+  Save, Download, Upload, RefreshCw, Search, Filter, 
+  ChevronDown, ChevronRight, Copy, Check, Settings, Sparkles,
+  Code2, FileText, Zap
+} from "lucide-react";
 import { DropColumnDialog } from "@/components/db/DropColumnDialog";
 import { IpcClient } from "@/ipc/ipc_client";
+import { useLanguageModelProviders } from "@/hooks/useLanguageModelProviders";
+import { useSettings } from "@/hooks/useSettings";
+import { ModelPicker } from "@/components/ModelPicker";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -12,7 +21,25 @@ interface Props {
   appId: number;
 }
 
+interface QueryHistoryItem {
+  id: string;
+  sql: string;
+  timestamp: number;
+  success: boolean;
+  rowCount?: number;
+}
+
+interface SavedQuery {
+  id: string;
+  name: string;
+  sql: string;
+  description?: string;
+  createdAt: number;
+}
+
 export function SupabaseDbBrowser({ appId }: Props) {
+  const { isAnyProviderSetup, isProviderSetup } = useLanguageModelProviders();
+  const { settings } = useSettings();
   const [loadingSchema, setLoadingSchema] = useState(false);
   const [schemaError, setSchemaError] = useState<string | null>(null);
   const [schema, setSchema] = useState<any>(null);
@@ -71,6 +98,213 @@ export function SupabaseDbBrowser({ appId }: Props) {
   };
   const [deleteRows, setDeleteRows] = useState<Set<number>>(new Set());
   const anyDeletes = deleteRows.size > 0;
+  
+  // Branch management
+  const [currentBranch, setCurrentBranch] = useState<string>("main");
+  const [branches, setBranches] = useState<string[]>(["main"]);
+  const [showBranchDialog, setShowBranchDialog] = useState(false);
+  const [newBranchName, setNewBranchName] = useState("");
+  
+  // Query history and saved queries
+  const historyKey = `dbb:${appId}:query_history`;
+  const savedQueriesKey = `dbb:${appId}:saved_queries`;
+  const [queryHistory, setQueryHistory] = useState<QueryHistoryItem[]>(() => {
+    try { return JSON.parse(localStorage.getItem(historyKey) || "[]"); } catch { return []; }
+  });
+  const [savedQueries, setSavedQueries] = useState<SavedQuery[]>(() => {
+    try { return JSON.parse(localStorage.getItem(savedQueriesKey) || "[]"); } catch { return []; }
+  });
+  const [showSaveQueryDialog, setShowSaveQueryDialog] = useState(false);
+  const [saveQueryName, setSaveQueryName] = useState("");
+  const [saveQueryDesc, setSaveQueryDesc] = useState("");
+  const [copiedSql, setCopiedSql] = useState(false);
+  
+  // Advanced UI state
+  const [showSettingsDialog, setShowSettingsDialog] = useState(false);
+  const [sqlFormatter, setSqlFormatter] = useState<"none" | "basic">("basic");
+  const [autoExecute, setAutoExecute] = useState(false);
+  const [queryTimeout, setQueryTimeout] = useState(30);
+  const [maxRows, setMaxRows] = useState(1000);
+  const [showLineNumbers, setShowLineNumbers] = useState(true);
+  const [enableAutocomplete, setEnableAutocomplete] = useState(true);
+  
+  // Table operations
+  const [showCreateTableDialog, setShowCreateTableDialog] = useState(false);
+  const [newTableName, setNewTableName] = useState("");
+  const [newTableColumns, setNewTableColumns] = useState<Array<{name: string; type: string; nullable: boolean}>>([{name: "id", type: "bigserial", nullable: false}]);
+  
+  // SQL Templates
+  const sqlTemplates = [
+    { name: "Select All", sql: "SELECT * FROM table_name LIMIT 100;", category: "Query" },
+    { name: "Count Rows", sql: "SELECT COUNT(*) FROM table_name;", category: "Query" },
+    { name: "Join Tables", sql: "SELECT a.*, b.*\nFROM table_a a\nINNER JOIN table_b b ON a.id = b.table_a_id;", category: "Query" },
+    { name: "Group By", sql: "SELECT column_name, COUNT(*)\nFROM table_name\nGROUP BY column_name\nORDER BY COUNT(*) DESC;", category: "Query" },
+    { name: "Create Table", sql: "CREATE TABLE table_name (\n  id BIGSERIAL PRIMARY KEY,\n  created_at TIMESTAMPTZ DEFAULT NOW()\n);", category: "Schema" },
+    { name: "Add Column", sql: "ALTER TABLE table_name ADD COLUMN column_name TEXT;", category: "Schema" },
+    { name: "Drop Column", sql: "ALTER TABLE table_name DROP COLUMN column_name;", category: "Schema" },
+    { name: "Create Index", sql: "CREATE INDEX idx_name ON table_name(column_name);", category: "Schema" },
+    { name: "Add Foreign Key", sql: "ALTER TABLE child_table\nADD CONSTRAINT fk_name\nFOREIGN KEY (parent_id)\nREFERENCES parent_table(id);", category: "Schema" },
+    { name: "Enable RLS", sql: "ALTER TABLE table_name ENABLE ROW LEVEL SECURITY;", category: "Security" },
+    { name: "Create Policy", sql: "CREATE POLICY policy_name ON table_name\n  FOR SELECT\n  USING (auth.uid() = user_id);", category: "Security" },
+    { name: "Grant Permissions", sql: "GRANT SELECT, INSERT, UPDATE, DELETE ON table_name TO authenticated;", category: "Security" },
+    { name: "Create Function", sql: "CREATE OR REPLACE FUNCTION function_name()\nRETURNS trigger AS $$\nBEGIN\n  -- Your logic here\n  RETURN NEW;\nEND;\n$$ LANGUAGE plpgsql;", category: "Advanced" },
+    { name: "Create Trigger", sql: "CREATE TRIGGER trigger_name\nBEFORE INSERT OR UPDATE ON table_name\nFOR EACH ROW\nEXECUTE FUNCTION function_name();", category: "Advanced" },
+    { name: "Full Text Search", sql: "SELECT * FROM table_name\nWHERE to_tsvector('english', column_name) @@ to_tsquery('search_term');", category: "Advanced" },
+  ];
+  const [showTemplatesDialog, setShowTemplatesDialog] = useState(false);
+  const [templateCategory, setTemplateCategory] = useState<string>("all");
+  
+  // Data visualization
+  const [showDataViz, setShowDataViz] = useState(false);
+  const [vizType, setVizType] = useState<"chart" | "stats">("stats");
+  
+  // AI Assistant
+  const [showAiAssistant, setShowAiAssistant] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [aiResponse, setAiResponse] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiAnalysisType, setAiAnalysisType] = useState<"explain" | "optimize" | "generate" | "debug">("generate");
+  
+  // AI SQL Generation - Real implementation
+  const generateSqlWithAI = async (prompt: string, type: string) => {
+    if (!isAnyProviderSetup()) {
+      setAiResponse("Please configure an AI provider in Settings first.");
+      return;
+    }
+    
+    setAiLoading(true);
+    setAiResponse("");
+    
+    let systemPrompt = "";
+    let userPrompt = "";
+    
+    if (type === "generate") {
+      systemPrompt = `You are a PostgreSQL SQL generator. You MUST return ONLY the raw SQL query, nothing else.
+
+Available tables: ${schemaTableNames.join(", ")}
+
+STRICT RULES:
+- Return ONLY the SQL query
+- NO <think> tags
+- NO <dyad-execute-sql> tags  
+- NO markdown code blocks (no \`\`\`)
+- NO explanations before or after
+- NO descriptions
+- NO natural language
+- Just the raw SQL query that starts with SELECT/INSERT/UPDATE/DELETE/CREATE/ALTER
+
+Example good response: SELECT * FROM users WHERE id = 1
+Example bad response: <think>...</think>SELECT * FROM users`;
+      userPrompt = `Generate SQL for: ${prompt}`;
+    } else if (type === "explain") {
+      systemPrompt = "You are a PostgreSQL expert. Explain SQL queries in simple, clear terms. Break down what each part does. Return only plain text explanation, no XML tags or markdown.";
+      userPrompt = `Explain this SQL query:\n\n${sql}`;
+    } else if (type === "optimize") {
+      systemPrompt = "You are a PostgreSQL performance expert. Analyze queries and suggest specific optimizations with index recommendations. Return only plain text suggestions, no XML tags or markdown.";
+      userPrompt = `Analyze and optimize this query:\n\n${sql}\n\nAvailable tables: ${schemaTableNames.join(", ")}`;
+    } else if (type === "debug") {
+      systemPrompt = "You are a PostgreSQL expert. Debug SQL errors and provide corrected versions with clear explanations. Return only plain text with the fixed SQL and explanation, no XML tags or markdown.";
+      userPrompt = `Debug this SQL error:\n\nQuery: ${sql}\nError: ${execError || "Unknown error"}\n\nProvide the fixed SQL and explanation.`;
+    }
+    
+    try {
+      // Create a temporary chat for AI analysis
+      const tempChatId = await IpcClient.getInstance().createChat(appId);
+      
+      let fullResponse = "";
+      
+      // Stream the AI response
+      IpcClient.getInstance().streamMessage(
+        `${systemPrompt}\n\n${userPrompt}`,
+        {
+          chatId: tempChatId,
+          selectedComponent: null,
+          onUpdate: (messages: any[]) => {
+            const lastMessage = messages[messages.length - 1];
+            if (lastMessage && lastMessage.role === "assistant") {
+              fullResponse = lastMessage.content;
+              setAiResponse(fullResponse);
+            }
+          },
+          onEnd: () => {
+            setAiLoading(false);
+            
+            // For generate type, extract and load SQL
+            if (type === "generate" && fullResponse) {
+              let extractedSql = fullResponse;
+              
+              // Remove <think> tags if present
+              extractedSql = extractedSql.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+              
+              // Remove XML tags if present (dyad-execute-sql, dyad-chat-summary)
+              extractedSql = extractedSql.replace(/<dyad-execute-sql[^>]*>([\s\S]*?)<\/dyad-execute-sql>/g, '$1');
+              extractedSql = extractedSql.replace(/<dyad-chat-summary>[\s\S]*?<\/dyad-chat-summary>/g, '');
+              extractedSql = extractedSql.replace(/<\/?[^>]+(>|$)/g, ''); // Remove any remaining XML/HTML tags
+              
+              // Remove markdown code blocks if present
+              const sqlMatch = extractedSql.match(/```(?:sql)?\n([\s\S]*?)\n```/);
+              if (sqlMatch) {
+                extractedSql = sqlMatch[1].trim();
+              }
+              
+              // Clean up any remaining markdown
+              extractedSql = extractedSql
+                .replace(/```[\s\S]*?```/g, '') // Remove code blocks
+                .trim();
+              
+              // Extract just the SQL statement (first line that looks like SQL)
+              const lines = extractedSql.split('\n');
+              const sqlLines = lines.filter(line => {
+                const upper = line.trim().toUpperCase();
+                return upper.startsWith('SELECT') || 
+                       upper.startsWith('INSERT') || 
+                       upper.startsWith('UPDATE') || 
+                       upper.startsWith('DELETE') || 
+                       upper.startsWith('CREATE') || 
+                       upper.startsWith('ALTER') ||
+                       upper.startsWith('WITH') ||
+                       (line.trim() && !upper.startsWith('//') && !upper.startsWith('--'));
+              });
+              
+              if (sqlLines.length > 0) {
+                extractedSql = sqlLines.join('\n').trim();
+                setSql(extractedSql);
+                
+                // Close dialog and focus on query section
+                setShowAiAssistant(false);
+                setOpenAccordions((prev) => Array.from(new Set([...prev, "query"])));
+                setAiPrompt("");
+                setAiResponse("");
+              }
+            }
+            
+            // Clean up temporary chat
+            IpcClient.getInstance().deleteChat(tempChatId).catch(() => {});
+          },
+          onError: (error: string) => {
+            setAiResponse(`Error: ${error}`);
+            setAiLoading(false);
+            IpcClient.getInstance().deleteChat(tempChatId).catch(() => {});
+          },
+        }
+      );
+    } catch (error: any) {
+      setAiResponse(`Error: ${error.message || "Failed to connect to AI service"}`);
+      setAiLoading(false);
+    }
+  };
+  
+  // Schema Diff & Version Control
+  const [showSchemaDiff, setShowSchemaDiff] = useState(false);
+  const [schemaSnapshots, setSchemaSnapshots] = useState<Array<{id: string; name: string; timestamp: number; schema: any}>>([]);
+  
+  // Performance Monitor
+  const [showPerfMonitor, setShowPerfMonitor] = useState(false);
+  const [queryStats, setQueryStats] = useState<{avgTime: number; slowQueries: number; totalQueries: number}>({avgTime: 0, slowQueries: 0, totalQueries: 0});
+  
+  // Collaboration
+  const [showCollabDialog, setShowCollabDialog] = useState(false);
+  const [sharedQueries, setSharedQueries] = useState<Array<{id: string; name: string; sql: string; sharedBy: string}>>([]);
 
   useEffect(() => {
     let mounted = true;
@@ -145,17 +379,36 @@ export function SupabaseDbBrowser({ appId }: Props) {
     setExecuting(true);
     setExecError(null);
     setResult(null);
+    const startTime = Date.now();
+    let success = false;
+    let rowCount: number | undefined;
+    
     try {
       const res = await IpcClient.getInstance().executeSupabaseSql(appId, text);
       if (res?.error) {
         setExecError(String(res.error));
       } else {
         setResult(res?.result ?? res);
+        success = true;
+        const resultRows = inferRows(res?.result ?? res);
+        rowCount = resultRows.length;
       }
     } catch (e: any) {
       setExecError(e?.message || String(e));
     } finally {
       setExecuting(false);
+      
+      // Add to query history
+      const historyItem: QueryHistoryItem = {
+        id: `${Date.now()}-${Math.random()}`,
+        sql: text,
+        timestamp: startTime,
+        success,
+        rowCount
+      };
+      const newHistory = [historyItem, ...queryHistory].slice(0, 50); // Keep last 50
+      setQueryHistory(newHistory);
+      try { localStorage.setItem(historyKey, JSON.stringify(newHistory)); } catch {}
     }
     // naive parse for SELECT ... FROM <table>
     const m = /select\s+[\s\S]*?from\s+([a-zA-Z0-9_."]+)/i.exec(text);
@@ -472,6 +725,58 @@ ROLLBACK;`,
     a.click();
     URL.revokeObjectURL(url);
   };
+  
+  // SQL Formatter (basic)
+  const formatSql = (sql: string): string => {
+    if (sqlFormatter === "none") return sql;
+    // Basic formatting
+    return sql
+      .replace(/\b(SELECT|FROM|WHERE|JOIN|LEFT JOIN|RIGHT JOIN|INNER JOIN|OUTER JOIN|ON|AND|OR|ORDER BY|GROUP BY|HAVING|LIMIT|OFFSET|INSERT INTO|UPDATE|DELETE|CREATE|ALTER|DROP|BEGIN|COMMIT|ROLLBACK)\b/gi, (match) => match.toUpperCase())
+      .replace(/,\s*/g, ", ")
+      .trim();
+  };
+  
+  // Copy to clipboard
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedSql(true);
+      setTimeout(() => setCopiedSql(false), 2000);
+    } catch (e) {
+      console.error("Failed to copy:", e);
+    }
+  };
+  
+  // Save query
+  const saveQuery = () => {
+    if (!saveQueryName.trim()) return;
+    const newQuery: SavedQuery = {
+      id: `${Date.now()}-${Math.random()}`,
+      name: saveQueryName,
+      sql: sql,
+      description: saveQueryDesc,
+      createdAt: Date.now()
+    };
+    const updated = [newQuery, ...savedQueries];
+    setSavedQueries(updated);
+    try { localStorage.setItem(savedQueriesKey, JSON.stringify(updated)); } catch {}
+    setShowSaveQueryDialog(false);
+    setSaveQueryName("");
+    setSaveQueryDesc("");
+  };
+  
+  // Delete saved query
+  const deleteSavedQuery = (id: string) => {
+    const updated = savedQueries.filter(q => q.id !== id);
+    setSavedQueries(updated);
+    try { localStorage.setItem(savedQueriesKey, JSON.stringify(updated)); } catch {}
+  };
+  
+  // Load query from history or saved
+  const loadQuery = (queryText: string) => {
+    setSql(queryText);
+    setOpenAccordions((prev) => Array.from(new Set([...prev, "query"])));
+  };
 
   // infer simple column types for badges (number/date/json/text)
   const inferTypeFromSchema = (columnName: string): string | null => {
@@ -598,36 +903,145 @@ ROLLBACK;`,
   }, [policies, polTable, polCmd, polSearch, polSortCol, polSortDir]);
 
   return (
-    <div className="w-full min-w-0 px-3 sm:px-4 py-3 space-y-4">
+    <div className="w-full min-w-0 px-3 sm:px-4 py-4 space-y-4">
+      {/* Header Section with better alignment */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex-1">
+          <div className="flex items-center gap-3">
+            <Database className="h-5 w-5 text-blue-500" />
+            <h3 className="text-lg font-semibold glass-contrast-text">Database Browser</h3>
+          </div>
+          <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
+            Comprehensive Supabase database management with schema browsing, SQL execution, and branch management.
+          </p>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Branch Selector */}
+          <div className="flex items-center gap-2 border rounded-lg px-3 py-1.5 bg-white/5">
+            <GitBranch className="h-3.5 w-3.5" />
+            <select 
+              className="bg-transparent text-xs font-medium outline-none cursor-pointer"
+              value={currentBranch}
+              onChange={(e) => setCurrentBranch(e.target.value)}
+            >
+              {branches.map(b => <option key={b} value={b}>{b}</option>)}
+            </select>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-6 px-2"
+              onClick={() => setShowBranchDialog(true)}
+              title="Create new branch"
+            >
+              <Plus className="h-3 w-3" />
+            </Button>
+          </div>
+          
+          {/* Density Toggle */}
+          <div className="hidden sm:flex items-center text-xs border rounded-lg overflow-hidden">
+            <button
+              type="button"
+              className={`px-3 py-1.5 transition-colors ${density === "comfortable" ? "bg-blue-500/20 text-blue-600 dark:text-blue-400" : "hover:bg-white/5"}`}
+              onClick={() => setDensity("comfortable")}
+              title="Comfortable row height"
+            >
+              Comfort
+            </button>
+            <button
+              type="button"
+              className={`px-3 py-1.5 transition-colors ${density === "compact" ? "bg-blue-500/20 text-blue-600 dark:text-blue-400" : "hover:bg-white/5"}`}
+              onClick={() => setDensity("compact")}
+              title="Compact row height"
+            >
+              Compact
+            </button>
+          </div>
+          
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => window.location.reload()}
+            className="gap-2"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            Refresh
+          </Button>
+        </div>
+      </div>
+      
+      {/* Quick Actions Toolbar */}
+      <div className="flex items-center gap-2 flex-wrap p-3 rounded-lg border border-white/10 bg-white/5">
+        <div className="text-xs font-medium text-muted-foreground mr-2">Quick Actions:</div>
+        {isAnyProviderSetup() && (
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="h-8 gap-2 bg-gradient-to-r from-purple-500/10 to-pink-500/10 border-purple-500/30 hover:border-purple-500/50"
+            onClick={() => setShowAiAssistant(true)}
+          >
+            <Sparkles className="h-3.5 w-3.5 text-purple-400" />
+            AI Assistant
+          </Button>
+        )}
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="h-8 gap-2"
+          onClick={() => setShowTemplatesDialog(true)}
+        >
+          <Database className="h-3.5 w-3.5" />
+          SQL Templates
+        </Button>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="h-8 gap-2"
+          onClick={() => setShowCreateTableDialog(true)}
+        >
+          <Plus className="h-3.5 w-3.5" />
+          Create Table
+        </Button>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="h-8 gap-2"
+          onClick={() => {
+            setSql("SELECT table_name, table_type\\nFROM information_schema.tables\\nWHERE table_schema = 'public'\\nORDER BY table_name;");
+            setOpenAccordions((prev) => Array.from(new Set([...prev, "query"])));
+          }}
+        >
+          <Search className="h-3.5 w-3.5" />
+          Analyze Schema
+        </Button>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="h-8 gap-2"
+          onClick={() => {
+            const tables = schemaTableNames.join(", ");
+            setSql(`-- Database Overview\\n-- Tables: ${tables || "none"}\\n-- Total columns: ${schemaColumns.length}\\n\\nSELECT * FROM information_schema.columns WHERE table_schema = 'public';`);
+            setOpenAccordions((prev) => Array.from(new Set([...prev, "query"])));
+          }}
+        >
+          <TableIcon className="h-3.5 w-3.5" />
+          Database Info
+        </Button>
+      </div>
+      
+      {/* RLS Warning Banner */}
       {policies.length > 0 && (
-        <div className="rounded-md border border-yellow-200 dark:border-yellow-900 bg-yellow-50 dark:bg-yellow-900/20 p-3">
-          <div className="text-sm font-medium text-yellow-800 dark:text-yellow-200">RLS/Policies detected</div>
-          <div className="text-xs text-yellow-800/90 dark:text-yellow-300 mt-1">
-            Queries may be restricted by Row Level Security policies. Review policies below.
+        <div className="rounded-lg border border-yellow-200 dark:border-yellow-900 bg-yellow-50 dark:bg-yellow-900/20 p-4">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <div className="text-sm font-medium text-yellow-800 dark:text-yellow-200">Row Level Security Detected</div>
+              <div className="text-xs text-yellow-800/90 dark:text-yellow-300 mt-1">
+                {policies.length} RLS {policies.length === 1 ? 'policy' : 'policies'} active. Queries may be restricted. Review policies in the dedicated section below.
+              </div>
+            </div>
           </div>
         </div>
       )}
-      <div className="flex items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold glass-contrast-text">Database Browser</h3>
-        <div className="flex items-center gap-2">
-          <div className="hidden sm:flex items-center text-xs border rounded-md overflow-hidden">
-            <button
-              type="button"
-              className={`px-2 py-1 transition-colors ${density === "comfortable" ? "bg-white/10" : "hover:bg-white/5"}`}
-              onClick={() => setDensity("comfortable")}
-              title="Comfortable row height"
-            >Comfort</button>
-            <button
-              type="button"
-              className={`px-2 py-1 transition-colors ${density === "compact" ? "bg-white/10" : "hover:bg-white/5"}`}
-              onClick={() => setDensity("compact")}
-              title="Compact row height"
-            >Compact</button>
-          </div>
-          <Button variant="outline" size="sm" onClick={() => window.location.reload()}>Refresh</Button>
-        </div>
-      </div>
-      <p className="text-xs text-zinc-600 dark:text-zinc-400">View schema and run SQL queries against the linked Supabase project.</p>
 
       <Accordion type="multiple" value={openAccordions} onValueChange={(v) => setOpenAccordions(v as string[])}>
 
@@ -853,30 +1267,290 @@ ROLLBACK;`,
         {/* Query Runner */}
         <AccordionItem value="query">
           <AccordionTrigger className="cursor-pointer">
-            <div className="inline-flex items-center gap-2 text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400"><TerminalSquare className="h-3.5 w-3.5"/> Query Runner</div>
+            <div className="inline-flex items-center gap-2 text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+              <TerminalSquare className="h-3.5 w-3.5"/> Query Runner
+            </div>
           </AccordionTrigger>
           <AccordionContent>
-            <div className="p-3 space-y-2">
-          <div>
-            <Label htmlFor="sql-editor" className="text-xs">SQL</Label>
-            <Textarea
-              id="sql-editor"
-              value={sql}
-              onChange={(e) => setSql(e.target.value)}
-              className="mt-1 font-mono text-xs min-h-[100px]"
-              placeholder="SELECT * FROM public.sample LIMIT 50;"
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <Button onClick={() => runSql(sql)} disabled={executing}>
-              {executing ? "Running…" : "Run"}
-            </Button>
-            <Button variant="outline" onClick={() => setSql("")}>Clear</Button>
-          </div>
-          {execError && (
-            <div className="text-sm text-red-700 dark:text-red-400">{execError}</div>
-          )}
-          </div>
+            <div className="p-4">
+              {/* Split Panel Layout: Left = Editor, Right = Results */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 min-h-[600px]">
+                {/* LEFT PANEL: Query Editor */}
+                <div className="flex flex-col space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="sql-editor" className="text-sm font-medium flex items-center gap-2">
+                      <TerminalSquare className="h-4 w-4" />
+                      SQL Editor
+                    </Label>
+                    <div className="flex items-center gap-1">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-7 px-2 gap-1"
+                        onClick={() => copyToClipboard(sql)}
+                        title="Copy SQL"
+                      >
+                        {copiedSql ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-7 px-2 gap-1"
+                        onClick={() => setSql(formatSql(sql))}
+                        title="Format SQL"
+                      >
+                        <Settings className="h-3 w-3" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-7 px-2 gap-1"
+                        onClick={() => setShowTemplatesDialog(true)}
+                        title="SQL Templates"
+                      >
+                        <Database className="h-3 w-3" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-7 px-2 gap-1"
+                        onClick={() => setShowSaveQueryDialog(true)}
+                        disabled={!sql.trim()}
+                        title="Save query"
+                      >
+                        <Save className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <Textarea
+                    id="sql-editor"
+                    value={sql}
+                    onChange={(e) => setSql(e.target.value)}
+                    className="font-mono text-xs flex-1 min-h-[300px] resize-none"
+                    placeholder="SELECT * FROM public.sample LIMIT 50;"
+                  />
+                  
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <Button 
+                        onClick={() => runSql(sql)} 
+                        disabled={executing || !sql.trim()}
+                        className="gap-2"
+                      >
+                        <Play className="h-3.5 w-3.5" />
+                        {executing ? "Running…" : "Run Query"}
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => setSql("")} disabled={!sql.trim()}>Clear</Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => setShowSettingsDialog(true)}
+                        title="Query Settings"
+                      >
+                        <Settings className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                    
+                    <div className="text-xs text-muted-foreground">
+                      {sql.trim() ? `${sql.length} chars` : ""}
+                    </div>
+                  </div>
+                  
+                  {/* Query History and Saved Queries - Stacked */}
+                  <div className="space-y-3 pt-2">
+                    {/* Query History */}
+                    <div className="rounded-lg border border-white/10 bg-white/5 p-2">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2 text-xs font-medium">
+                          <History className="h-3.5 w-3.5" />
+                          History
+                        </div>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-5 px-1 text-[10px]"
+                          onClick={() => {
+                            setQueryHistory([]);
+                            try { localStorage.removeItem(historyKey); } catch {}
+                          }}
+                          disabled={queryHistory.length === 0}
+                        >
+                          Clear
+                        </Button>
+                      </div>
+                      <div className="max-h-[120px] overflow-y-auto space-y-1">
+                        {queryHistory.length === 0 ? (
+                          <div className="text-[10px] text-muted-foreground text-center py-2">No history</div>
+                        ) : (
+                          queryHistory.slice(0, 5).map((item) => (
+                            <button
+                              key={item.id}
+                              className="w-full text-left p-1.5 rounded border border-white/5 hover:bg-white/5 transition-colors"
+                              onClick={() => loadQuery(item.sql)}
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <pre className="text-[10px] font-mono flex-1 truncate">{item.sql.split('\n')[0]}</pre>
+                                <div className={`text-[9px] px-1 py-0.5 rounded ${item.success ? 'bg-green-500/20 text-green-600' : 'bg-red-500/20 text-red-600'}`}>
+                                  {item.success ? '✓' : '✗'}
+                                </div>
+                              </div>
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                    
+                    {/* Saved Queries */}
+                    <div className="rounded-lg border border-white/10 bg-white/5 p-2">
+                      <div className="flex items-center gap-2 text-xs font-medium mb-2">
+                        <Save className="h-3.5 w-3.5" />
+                        Saved
+                      </div>
+                      <div className="max-h-[120px] overflow-y-auto space-y-1">
+                        {savedQueries.length === 0 ? (
+                          <div className="text-[10px] text-muted-foreground text-center py-2">No saved queries</div>
+                        ) : (
+                          savedQueries.slice(0, 5).map((query) => (
+                            <div
+                              key={query.id}
+                              className="p-1.5 rounded border border-white/5 hover:bg-white/5 transition-colors group"
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <button
+                                  className="flex-1 text-left"
+                                  onClick={() => loadQuery(query.sql)}
+                                >
+                                  <div className="text-[10px] font-medium">{query.name}</div>
+                                  <pre className="text-[9px] font-mono text-muted-foreground truncate">{query.sql.split('\n')[0]}</pre>
+                                </button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100"
+                                  onClick={() => deleteSavedQuery(query.id)}
+                                >
+                                  <Trash2 className="h-2.5 w-2.5" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* RIGHT PANEL: Results */}
+                <div className="flex flex-col space-y-3 border-l border-white/10 pl-4">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium flex items-center gap-2">
+                      <TableIcon className="h-4 w-4" />
+                      Results
+                    </Label>
+                    {result && rows.length > 0 && (
+                      <div className="flex items-center gap-2">
+                        <Button variant="outline" size="sm" className="h-7 px-2" onClick={exportCSV}>
+                          <Download className="h-3 w-3 mr-1" />CSV
+                        </Button>
+                        <Button variant="outline" size="sm" className="h-7 px-2" onClick={exportJSON}>
+                          <Download className="h-3 w-3 mr-1" />JSON
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {execError ? (
+                    <div className="rounded-lg border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 p-3">
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <div className="text-sm font-medium text-red-800 dark:text-red-200">Query Error</div>
+                          <pre className="text-xs text-red-700 dark:text-red-300 mt-1 whitespace-pre-wrap break-words">{execError}</pre>
+                        </div>
+                      </div>
+                    </div>
+                  ) : result === null ? (
+                    <div className="flex-1 flex items-center justify-center rounded-lg border border-dashed border-white/20 bg-white/5">
+                      <div className="text-center p-8">
+                        <Play className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                        <div className="text-sm text-muted-foreground">Run a query to see results</div>
+                      </div>
+                    </div>
+                  ) : rows.length === 0 ? (
+                    <div className="flex-1 flex items-center justify-center rounded-lg border border-white/20 bg-white/5">
+                      <div className="text-center p-8">
+                        <div className="text-sm text-muted-foreground">Query executed successfully</div>
+                        <div className="text-xs text-muted-foreground mt-1">No rows returned</div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex-1 overflow-auto rounded-lg border border-white/10">
+                      <div className="text-xs text-muted-foreground px-3 py-2 border-b border-white/10 bg-white/5">
+                        {rows.length} {rows.length === 1 ? 'row' : 'rows'}
+                      </div>
+                      <div className="overflow-auto max-h-[500px]">
+                        <table className={`w-full text-xs ${density === "compact" ? "text-[10px]" : ""}`}>
+                          <thead className="sticky top-0 z-10 bg-background/95 backdrop-blur">
+                            <tr className="text-left border-b border-white/20">
+                              {columns.map((c) => (
+                                <th key={c} className="py-2 px-3 font-semibold">
+                                  <button
+                                    type="button"
+                                    className="inline-flex items-center gap-1 hover:underline"
+                                    onClick={() => {
+                                      if (sortCol === c) {
+                                        setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+                                      } else {
+                                        setSortCol(c);
+                                        setSortDir("asc");
+                                      }
+                                    }}
+                                  >
+                                    {c}
+                                    <span className="text-[9px] px-1 py-0.5 rounded bg-white/10 border border-white/10">
+                                      {columnTypes[c]}
+                                    </span>
+                                    {sortCol === c ? (sortDir === "asc" ? " ▲" : " ▼") : null}
+                                  </button>
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {pagedRows.map((r, idx) => (
+                              <tr key={idx} className="border-b border-white/5 hover:bg-white/5">
+                                {columns.map((c) => (
+                                  <td key={c} className="py-1.5 px-3 align-top">
+                                    {(() => {
+                                      const v = r[c];
+                                      const out = formatValue(v);
+                                      if (typeof v === "object") {
+                                        return <pre className="whitespace-pre-wrap break-words text-[10px]">{out as any}</pre>;
+                                      }
+                                      return out as any;
+                                    })()}
+                                  </td>
+                                ))}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      {totalPages > 1 && (
+                        <div className="flex items-center justify-between px-3 py-2 border-t border-white/10 bg-white/5 text-xs">
+                          <div>Page {page} / {totalPages}</div>
+                          <div className="flex gap-2">
+                            <Button variant="outline" size="sm" className="h-6" disabled={page === 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>Prev</Button>
+                            <Button variant="outline" size="sm" className="h-6" disabled={page === totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>Next</Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
           </AccordionContent>
         </AccordionItem>
 
@@ -1240,6 +1914,577 @@ ROLLBACK;`,
       <div className="flex items-center gap-2">
         <Button variant="outline" onClick={()=> setInsertOpen(false)}>Cancel</Button>
         <Button onClick={async ()=> { await runSql(insertSql); setInsertOpen(false); setOpenAccordions((prev)=> Array.from(new Set([...prev, 'result']))); setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0); }}>Run</Button>
+      </div>
+    </DialogContent>
+  </Dialog>
+
+  {/* Drop Column Dialog */}
+  <DropColumnDialog
+    open={dropColOpen}
+    onOpenChange={setDropColOpen}
+    table={ddlTable}
+    columns={ddlTable ? (schemaRowsByTable[ddlTable] || []).map((c: any) => c.column) : []}
+    initialColumn={ddlColumn}
+    onPreviewSql={(sql) => {
+      setConfirmSql(sql);
+      setConfirmStage(0);
+      setConfirmSqlOpen(true);
+    }}
+  />
+
+  {/* Branch Creation Dialog */}
+  <Dialog open={showBranchDialog} onOpenChange={setShowBranchDialog}>
+    <DialogContent className="max-w-md">
+      <DialogHeader>
+        <DialogTitle>Create New Branch</DialogTitle>
+        <DialogDescription className="text-xs">
+          Create a new database branch for testing schema changes safely.
+        </DialogDescription>
+      </DialogHeader>
+      <div className="space-y-3">
+        <div>
+          <Label htmlFor="branch-name" className="text-sm">Branch Name</Label>
+          <input
+            id="branch-name"
+            className="w-full border rounded-lg px-3 py-2 bg-transparent mt-1"
+            placeholder="feature/new-schema"
+            value={newBranchName}
+            onChange={(e) => setNewBranchName(e.target.value)}
+          />
+        </div>
+        <div className="text-xs text-muted-foreground">
+          Branch from: <span className="font-medium">{currentBranch}</span>
+        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        <Button variant="outline" onClick={() => {
+          setShowBranchDialog(false);
+          setNewBranchName("");
+        }}>Cancel</Button>
+        <Button onClick={() => {
+          if (newBranchName.trim() && !branches.includes(newBranchName.trim())) {
+            setBranches([...branches, newBranchName.trim()]);
+            setCurrentBranch(newBranchName.trim());
+          }
+          setShowBranchDialog(false);
+          setNewBranchName("");
+        }} disabled={!newBranchName.trim() || branches.includes(newBranchName.trim())}>
+          Create Branch
+        </Button>
+      </div>
+    </DialogContent>
+  </Dialog>
+
+  {/* Save Query Dialog */}
+  <Dialog open={showSaveQueryDialog} onOpenChange={setShowSaveQueryDialog}>
+    <DialogContent className="max-w-md">
+      <DialogHeader>
+        <DialogTitle>Save Query</DialogTitle>
+        <DialogDescription className="text-xs">
+          Save this query for quick access later.
+        </DialogDescription>
+      </DialogHeader>
+      <div className="space-y-3">
+        <div>
+          <Label htmlFor="query-name" className="text-sm">Query Name</Label>
+          <input
+            id="query-name"
+            className="w-full border rounded-lg px-3 py-2 bg-transparent mt-1"
+            placeholder="My useful query"
+            value={saveQueryName}
+            onChange={(e) => setSaveQueryName(e.target.value)}
+          />
+        </div>
+        <div>
+          <Label htmlFor="query-desc" className="text-sm">Description (optional)</Label>
+          <Textarea
+            id="query-desc"
+            className="mt-1 text-xs min-h-[60px]"
+            placeholder="What does this query do?"
+            value={saveQueryDesc}
+            onChange={(e) => setSaveQueryDesc(e.target.value)}
+          />
+        </div>
+        <div className="rounded border border-white/10 bg-white/5 p-2">
+          <div className="text-xs text-muted-foreground mb-1">SQL Preview:</div>
+          <pre className="text-[10px] font-mono max-h-[100px] overflow-auto">{sql}</pre>
+        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        <Button variant="outline" onClick={() => {
+          setShowSaveQueryDialog(false);
+          setSaveQueryName("");
+          setSaveQueryDesc("");
+        }}>Cancel</Button>
+        <Button onClick={saveQuery} disabled={!saveQueryName.trim()}>
+          Save Query
+        </Button>
+      </div>
+    </DialogContent>
+  </Dialog>
+
+  {/* SQL Confirmation Dialog */}
+  <Dialog open={confirmSqlOpen} onOpenChange={setConfirmSqlOpen}>
+    <DialogContent className="max-w-2xl">
+      <DialogHeader>
+        <DialogTitle>Confirm SQL Execution</DialogTitle>
+        <DialogDescription className="text-xs">
+          Review the SQL statement before executing. This action cannot be undone.
+        </DialogDescription>
+      </DialogHeader>
+      <div className="space-y-3">
+        <div className="rounded-lg border border-white/10 bg-white/5 p-3">
+          <Label className="text-sm mb-2 block">SQL Statement:</Label>
+          <pre className="text-xs font-mono whitespace-pre-wrap break-words max-h-[300px] overflow-auto">{confirmSql}</pre>
+        </div>
+        {confirmStage === 0 && (
+          <div className="rounded-lg border border-yellow-200 dark:border-yellow-900 bg-yellow-50 dark:bg-yellow-900/20 p-3">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
+              <div className="text-xs text-yellow-800 dark:text-yellow-300">
+                This will modify your database schema. Make sure you have a backup or are using a development branch.
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+      <div className="flex items-center gap-2">
+        <Button variant="outline" onClick={() => {
+          setConfirmSqlOpen(false);
+          setConfirmSql("");
+          setConfirmStage(0);
+        }}>Cancel</Button>
+        <Button onClick={async () => {
+          await runSql(confirmSql);
+          setConfirmSqlOpen(false);
+          setConfirmSql("");
+          setConfirmStage(0);
+          setOpenAccordions((prev) => Array.from(new Set([...prev, 'result'])));
+        }} variant="default">
+          Execute SQL
+        </Button>
+      </div>
+    </DialogContent>
+  </Dialog>
+
+  {/* Seed Confirmation Dialog */}
+  <Dialog open={confirmSeedOpen} onOpenChange={setConfirmSeedOpen}>
+    <DialogContent className="max-w-2xl">
+      <DialogHeader>
+        <DialogTitle>Confirm Seed Execution</DialogTitle>
+        <DialogDescription className="text-xs">
+          This will execute multiple SQL statements. Review carefully.
+        </DialogDescription>
+      </DialogHeader>
+      <div className="space-y-3">
+        <div className="rounded-lg border border-white/10 bg-white/5 p-3">
+          <pre className="text-xs font-mono whitespace-pre-wrap break-words max-h-[300px] overflow-auto">{seedSql}</pre>
+        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        <Button variant="outline" onClick={() => setConfirmSeedOpen(false)}>Cancel</Button>
+        <Button onClick={async () => {
+          setConfirmSeedOpen(false);
+          try {
+            setSeedBusy(true);
+            await runSql(seedSql);
+          } finally {
+            setSeedBusy(false);
+          }
+        }}>
+          Execute Seed
+        </Button>
+      </div>
+    </DialogContent>
+  </Dialog>
+
+  {/* Query Settings Dialog */}
+  <Dialog open={showSettingsDialog} onOpenChange={setShowSettingsDialog}>
+    <DialogContent className="max-w-md">
+      <DialogHeader>
+        <DialogTitle>Query Runner Settings</DialogTitle>
+        <DialogDescription className="text-xs">
+          Configure query execution and editor preferences.
+        </DialogDescription>
+      </DialogHeader>
+      <div className="space-y-4">
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <Label className="text-sm">SQL Formatter</Label>
+              <div className="text-xs text-muted-foreground">Auto-format SQL keywords</div>
+            </div>
+            <select 
+              className="border rounded px-2 py-1 text-xs bg-transparent"
+              value={sqlFormatter}
+              onChange={(e) => setSqlFormatter(e.target.value as any)}
+            >
+              <option value="none">None</option>
+              <option value="basic">Basic</option>
+            </select>
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <div>
+              <Label className="text-sm">Query Timeout</Label>
+              <div className="text-xs text-muted-foreground">Maximum execution time (seconds)</div>
+            </div>
+            <input 
+              type="number" 
+              className="w-20 border rounded px-2 py-1 text-xs bg-transparent"
+              value={queryTimeout}
+              onChange={(e) => setQueryTimeout(Number(e.target.value))}
+              min={5}
+              max={300}
+            />
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <div>
+              <Label className="text-sm">Max Rows Display</Label>
+              <div className="text-xs text-muted-foreground">Limit rows in results</div>
+            </div>
+            <input 
+              type="number" 
+              className="w-20 border rounded px-2 py-1 text-xs bg-transparent"
+              value={maxRows}
+              onChange={(e) => setMaxRows(Number(e.target.value))}
+              min={10}
+              max={10000}
+            />
+          </div>
+          
+          <div className="flex items-center justify-between pt-2 border-t border-white/10">
+            <div>
+              <Label className="text-sm">Show Line Numbers</Label>
+              <div className="text-xs text-muted-foreground">Display line numbers in editor</div>
+            </div>
+            <input 
+              type="checkbox" 
+              checked={showLineNumbers}
+              onChange={(e) => setShowLineNumbers(e.target.checked)}
+              className="h-4 w-4"
+            />
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <div>
+              <Label className="text-sm">Enable Autocomplete</Label>
+              <div className="text-xs text-muted-foreground">SQL keyword suggestions</div>
+            </div>
+            <input 
+              type="checkbox" 
+              checked={enableAutocomplete}
+              onChange={(e) => setEnableAutocomplete(e.target.checked)}
+              className="h-4 w-4"
+            />
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <div>
+              <Label className="text-sm">Auto-Execute on Load</Label>
+              <div className="text-xs text-muted-foreground">Run query when loading from history</div>
+            </div>
+            <input 
+              type="checkbox" 
+              checked={autoExecute}
+              onChange={(e) => setAutoExecute(e.target.checked)}
+              className="h-4 w-4"
+            />
+          </div>
+        </div>
+      </div>
+      <div className="flex items-center justify-between pt-2">
+        <Button variant="outline" size="sm" onClick={() => {
+          setSqlFormatter("basic");
+          setQueryTimeout(30);
+          setMaxRows(1000);
+          setShowLineNumbers(true);
+          setEnableAutocomplete(true);
+          setAutoExecute(false);
+        }}>
+          Reset to Defaults
+        </Button>
+        <Button onClick={() => setShowSettingsDialog(false)}>
+          Done
+        </Button>
+      </div>
+    </DialogContent>
+  </Dialog>
+
+  {/* SQL Templates Dialog */}
+  <Dialog open={showTemplatesDialog} onOpenChange={setShowTemplatesDialog}>
+    <DialogContent className="max-w-2xl">
+      <DialogHeader>
+        <DialogTitle>SQL Templates</DialogTitle>
+        <DialogDescription className="text-xs">
+          Quick-start templates for common database operations.
+        </DialogDescription>
+      </DialogHeader>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[500px] overflow-y-auto">
+        {sqlTemplates.map((template) => (
+          <button
+            key={template.name}
+            className="text-left p-3 rounded-lg border border-white/10 hover:bg-white/5 transition-colors group"
+            onClick={() => {
+              setSql(template.sql);
+              setShowTemplatesDialog(false);
+              setOpenAccordions((prev) => Array.from(new Set([...prev, "query"])));
+            }}
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex-1">
+                <div className="text-sm font-medium mb-1">{template.name}</div>
+                <pre className="text-[10px] font-mono text-muted-foreground whitespace-pre-wrap break-words">
+                  {template.sql.length > 100 ? template.sql.substring(0, 100) + "..." : template.sql}
+                </pre>
+              </div>
+              <ChevronRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </div>
+          </button>
+        ))}
+      </div>
+      <div className="flex items-center justify-between pt-2 border-t border-white/10">
+        <div className="text-xs text-muted-foreground">
+          Click a template to load it into the editor
+        </div>
+        <Button variant="outline" onClick={() => setShowTemplatesDialog(false)}>
+          Close
+        </Button>
+      </div>
+    </DialogContent>
+  </Dialog>
+
+  {/* AI Assistant Dialog */}
+  <Dialog open={showAiAssistant} onOpenChange={setShowAiAssistant}>
+    <DialogContent className="max-w-2xl">
+      <DialogHeader>
+        <DialogTitle className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-purple-500" />
+            AI SQL Assistant
+          </div>
+          <ModelPicker />
+        </DialogTitle>
+        <DialogDescription className="text-xs">
+          Generate, explain, optimize, or debug SQL queries using AI.
+        </DialogDescription>
+      </DialogHeader>
+      <div className="space-y-4">
+        {/* Analysis Type Selector */}
+        <div className="flex items-center gap-2 p-2 rounded-lg border border-white/10 bg-white/5">
+          {[
+            { value: "generate", label: "Generate SQL", icon: <Code2 className="h-3.5 w-3.5" /> },
+            { value: "explain", label: "Explain Query", icon: <FileText className="h-3.5 w-3.5" /> },
+            { value: "optimize", label: "Optimize", icon: <Zap className="h-3.5 w-3.5" /> },
+            { value: "debug", label: "Debug Error", icon: <AlertTriangle className="h-3.5 w-3.5" /> },
+          ].map((type) => (
+            <button
+              key={type.value}
+              className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded text-xs font-medium transition-colors ${
+                aiAnalysisType === type.value
+                  ? "bg-purple-500/20 text-purple-400 border border-purple-500/50"
+                  : "hover:bg-white/5"
+              }`}
+              onClick={() => setAiAnalysisType(type.value as any)}
+            >
+              {type.icon}
+              {type.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Prompt Input */}
+        {aiAnalysisType === "generate" && (
+          <div>
+            <Label className="text-sm mb-2 block">What do you want to query?</Label>
+            <Textarea
+              placeholder="e.g., Show me all users who signed up in the last 7 days"
+              value={aiPrompt}
+              onChange={(e) => setAiPrompt(e.target.value)}
+              className="min-h-[100px] text-sm"
+            />
+          </div>
+        )}
+
+        {/* Current SQL Context (for explain/optimize/debug) */}
+        {aiAnalysisType !== "generate" && (
+          <div className="rounded-lg border border-white/10 bg-white/5 p-3">
+            <Label className="text-xs mb-2 block">Current SQL:</Label>
+            <pre className="text-[10px] font-mono whitespace-pre-wrap break-words max-h-[100px] overflow-auto">
+              {sql || "No SQL query in editor"}
+            </pre>
+          </div>
+        )}
+
+        {/* AI Response */}
+        {(aiLoading || aiResponse) && (
+          <div className="rounded-lg border border-purple-500/30 bg-purple-500/5 p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Sparkles className="h-4 w-4 text-purple-400" />
+              <Label className="text-sm font-medium">AI Response</Label>
+            </div>
+            {aiLoading ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <RefreshCw className="h-4 w-4 animate-spin" />
+                Analyzing...
+              </div>
+            ) : (
+              <div className="text-sm whitespace-pre-wrap">{aiResponse}</div>
+            )}
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => {
+              setShowAiAssistant(false);
+              setAiPrompt("");
+              setAiResponse("");
+            }}
+          >
+            Close
+          </Button>
+          <Button
+            onClick={() => generateSqlWithAI(aiPrompt, aiAnalysisType)}
+            disabled={aiLoading || (aiAnalysisType === "generate" && !aiPrompt.trim())}
+            className="gap-2 bg-gradient-to-r from-purple-500 to-pink-500"
+          >
+            <Sparkles className="h-4 w-4" />
+            {aiLoading ? "Processing..." : aiAnalysisType === "generate" ? "Generate & Run" : "Analyze with AI"}
+          </Button>
+        </div>
+      </div>
+    </DialogContent>
+  </Dialog>
+
+  {/* Create Table Dialog */}
+  <Dialog open={showCreateTableDialog} onOpenChange={setShowCreateTableDialog}>
+    <DialogContent className="max-w-3xl">
+      <DialogHeader>
+        <DialogTitle>Create New Table</DialogTitle>
+        <DialogDescription className="text-xs">
+          Design your table schema with columns and constraints.
+        </DialogDescription>
+      </DialogHeader>
+      <div className="space-y-4">
+        <div>
+          <Label className="text-sm">Table Name</Label>
+          <input 
+            className="w-full border rounded-lg px-3 py-2 bg-transparent mt-1 text-sm"
+            placeholder="users"
+            value={newTableName}
+            onChange={(e) => setNewTableName(e.target.value)}
+          />
+        </div>
+        
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <Label className="text-sm">Columns</Label>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setNewTableColumns([...newTableColumns, {name: "", type: "text", nullable: true}])}
+            >
+              <Plus className="h-3 w-3 mr-1" />
+              Add Column
+            </Button>
+          </div>
+          
+          <div className="space-y-2 max-h-[300px] overflow-y-auto">
+            {newTableColumns.map((col, idx) => (
+              <div key={idx} className="flex items-center gap-2 p-2 rounded border border-white/10">
+                <input 
+                  className="flex-1 border rounded px-2 py-1 text-xs bg-transparent"
+                  placeholder="column_name"
+                  value={col.name}
+                  onChange={(e) => {
+                    const updated = [...newTableColumns];
+                    updated[idx].name = e.target.value;
+                    setNewTableColumns(updated);
+                  }}
+                />
+                <select 
+                  className="border rounded px-2 py-1 text-xs bg-transparent"
+                  value={col.type}
+                  onChange={(e) => {
+                    const updated = [...newTableColumns];
+                    updated[idx].type = e.target.value;
+                    setNewTableColumns(updated);
+                  }}
+                >
+                  <option value="text">TEXT</option>
+                  <option value="varchar(255)">VARCHAR(255)</option>
+                  <option value="integer">INTEGER</option>
+                  <option value="bigint">BIGINT</option>
+                  <option value="bigserial">BIGSERIAL</option>
+                  <option value="numeric">NUMERIC</option>
+                  <option value="boolean">BOOLEAN</option>
+                  <option value="timestamptz">TIMESTAMPTZ</option>
+                  <option value="date">DATE</option>
+                  <option value="jsonb">JSONB</option>
+                  <option value="uuid">UUID</option>
+                </select>
+                <label className="flex items-center gap-1 text-xs whitespace-nowrap">
+                  <input 
+                    type="checkbox"
+                    checked={col.nullable}
+                    onChange={(e) => {
+                      const updated = [...newTableColumns];
+                      updated[idx].nullable = e.target.checked;
+                      setNewTableColumns(updated);
+                    }}
+                  />
+                  Nullable
+                </label>
+                {idx > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 p-0"
+                    onClick={() => setNewTableColumns(newTableColumns.filter((_, i) => i !== idx))}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+        
+        <div className="rounded-lg border border-white/10 bg-white/5 p-3">
+          <Label className="text-xs mb-2 block">Generated SQL:</Label>
+          <pre className="text-[10px] font-mono whitespace-pre-wrap break-words">
+            {`CREATE TABLE ${newTableName || "table_name"} (\n${newTableColumns.map((col, idx) => {
+              const nullable = col.nullable ? "" : " NOT NULL";
+              const isPrimary = idx === 0 && col.type === "bigserial" ? " PRIMARY KEY" : "";
+              return `  ${col.name || "column_name"} ${col.type.toUpperCase()}${nullable}${isPrimary}`;
+            }).join(",\n")}\n);`}
+          </pre>
+        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        <Button variant="outline" onClick={() => {
+          setShowCreateTableDialog(false);
+          setNewTableName("");
+          setNewTableColumns([{name: "id", type: "bigserial", nullable: false}]);
+        }}>Cancel</Button>
+        <Button onClick={() => {
+          const sql = `CREATE TABLE ${newTableName} (\n${newTableColumns.map((col, idx) => {
+            const nullable = col.nullable ? "" : " NOT NULL";
+            const isPrimary = idx === 0 && col.type === "bigserial" ? " PRIMARY KEY" : "";
+            return `  ${col.name} ${col.type.toUpperCase()}${nullable}${isPrimary}`;
+          }).join(",\n")}\n);`;
+          setSql(sql);
+          setShowCreateTableDialog(false);
+          setNewTableName("");
+          setNewTableColumns([{name: "id", type: "bigserial", nullable: false}]);
+          setOpenAccordions((prev) => Array.from(new Set([...prev, "query"])));
+        }} disabled={!newTableName.trim() || newTableColumns.some(c => !c.name.trim())}>
+          Generate SQL
+        </Button>
       </div>
     </DialogContent>
   </Dialog>

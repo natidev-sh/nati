@@ -764,6 +764,30 @@ This conversation includes one or more image attachments. When the user uploads 
             } satisfies GoogleGenerativeAIProviderOptions;
           }
 
+          // Add user ID for LiteLLM budget tracking (Pro users only)
+          const userId = settings.enableDyadPro && settings.natiUser?.id 
+            ? settings.natiUser.id 
+            : undefined;
+
+          // Add user to provider options for budget tracking
+          // The 'user' parameter is passed to OpenAI-compatible APIs (including LiteLLM)
+          if (userId) {
+            logger.info(`[Budget Tracking] Adding user ID to request: ${userId}`);
+            // OpenAI provider supports 'user' parameter
+            providerOptions.openai = {
+              ...providerOptions.openai,
+              user: userId,
+            };
+            // For dyad-gateway (LiteLLM), pass user in the body
+            providerOptions["dyad-gateway"] = {
+              ...providerOptions["dyad-gateway"],
+              user: userId,
+            };
+            logger.info("[Budget Tracking] Provider options updated with user ID");
+          } else {
+            logger.warn("[Budget Tracking] No user ID available for tracking");
+          }
+
           return streamText({
             headers: isAnthropic
               ? {

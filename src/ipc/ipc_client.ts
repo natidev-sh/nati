@@ -1308,6 +1308,11 @@ export class IpcClient {
     return this.ipcRenderer.invoke("get-user-budget");
   }
 
+  // Method to ensure Pro user is registered in LiteLLM
+  public async ensureProUser(userId: string): Promise<boolean> {
+    return this.ipcRenderer.invoke("ensure-pro-user", userId);
+  }
+
   public async getChatContextResults(params: {
     appId: number;
   }): Promise<ContextPathResults> {
