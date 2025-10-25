@@ -73,18 +73,26 @@ export async function onReady() {
   logger.info("Auto-update enabled=", settings.enableAutoUpdate);
   // Only enable auto-update in packaged builds
   if (settings.enableAutoUpdate && app.isPackaged) {
-    // Technically we could just pass the releaseChannel directly to the host,
-    // but this is more explicit and falls back to stable if there's an unknown
-    // release channel.
-    const postfix = settings.releaseChannel === "beta" ? "beta" : "stable";
-    logger.info("Auto-update release channel=", postfix);
-    updateElectronApp({
+    // Configure updater based on release channel
+    const releaseChannel = settings.releaseChannel || "stable";
+    logger.info("Auto-update release channel=", releaseChannel);
+    
+    // Configure update source based on channel
+    const updateConfig: any = {
       logger,
       updateSource: {
         type: UpdateSourceType.ElectronPublicUpdateService,
         repo: "natidev-sh/nati",
       },
-    }); // additional configuration options available
+    };
+    
+    // For beta channel, we need to configure the updater to check for pre-releases
+    if (releaseChannel === "beta") {
+      updateConfig.updateSource.allowPrerelease = true;
+      logger.info("Beta channel: allowing pre-releases");
+    }
+    
+    updateElectronApp(updateConfig);
 
     // Hook into autoUpdater events and forward to renderer
     // Prefer electron-updater if available, otherwise fall back to Electron's autoUpdater
@@ -137,17 +145,23 @@ export async function onReady() {
       ipcMain.handle("update:check-now", async () => {
         try {
           const now = Date.now();
-          // Debounce manual checks to avoid Squirrel lock conflicts
+          // Reduced debounce to 10 seconds for better UX
           if (isUpdateCheckInFlight) {
             return { ok: false, busy: true, reason: "in_flight" };
           }
-          if (lastUpdateCheckAt && now - lastUpdateCheckAt < 30_000) {
+          if (lastUpdateCheckAt && now - lastUpdateCheckAt < 10_000) {
             return { ok: false, busy: true, reason: "cooldown" };
           }
           isUpdateCheckInFlight = true;
           lastUpdateCheckAt = now;
-          // For electron-updater this triggers flow; for built-in, same
-          await updater.checkForUpdates();
+          
+          // Add timeout to prevent hanging
+          const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error("Update check timeout")), 30_000);
+          });
+          
+          const updatePromise = updater.checkForUpdates();
+          await Promise.race([updatePromise, timeoutPromise]);
           return { ok: true };
         } catch (e: any) {
           logger.warn("checkForUpdates failed", e);

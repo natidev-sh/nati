@@ -103,7 +103,7 @@ async function cleanupAppResources(appId: number): Promise<void> {
     
     // Additional cleanup for Docker containers
     try {
-      const containerName = `dyad-app-${appId}`;
+      const containerName = `nati-app-${appId}`;
       const { exec } = await import("child_process");
       const { promisify } = await import("util");
       const execAsync = promisify(exec);
@@ -235,7 +235,7 @@ function listenToProcess({
     // This is a hacky heuristic to pick up when drizzle is asking for user
     // to select from one of a few choices. We automatically pick the first
     // option because it's usually a good default choice. We guard this with
-    // isNeon because: 1) only Neon apps (for the official Dyad templates) should
+    // isNeon because: 1) only Neon apps (for the official Nati templates) should
     // get this template and 2) it's safer to do this with Neon apps because
     // their databases have point in time restore built-in.
     if (isNeon && message.includes("created or renamed from another")) {
@@ -349,7 +349,7 @@ async function executeAppInDocker({
   installCommand?: string | null;
   startCommand?: string | null;
 }): Promise<void> {
-  const containerName = `dyad-app-${appId}`;
+  const containerName = `nati-app-${appId}`;
 
   // First, check if Docker is available
   try {
@@ -394,7 +394,7 @@ async function executeAppInDocker({
   }
 
   // Create a Dockerfile in the app directory if it doesn't exist
-  const dockerfilePath = path.join(appPath, "Dockerfile.dyad");
+  const dockerfilePath = path.join(appPath, "Dockerfile.nati");
   if (!fs.existsSync(dockerfilePath)) {
     const dockerfileContent = `FROM node:22-alpine
 
@@ -413,7 +413,7 @@ RUN npm install -g pnpm
   // Build the Docker image
   const buildProcess = spawn(
     "docker",
-    ["build", "-f", "Dockerfile.dyad", "-t", `dyad-app-${appId}`, "."],
+    ["build", "-f", "Dockerfile.nati", "-t", `nati-app-${appId}`, "."],
     {
       cwd: appPath,
       stdio: "pipe",
@@ -500,12 +500,12 @@ RUN npm install -g pnpm
       "-v",
       `${appPath}:/app`,
       "-v",
-      `dyad-pnpm-${appId}:/app/.pnpm-store`,
+      `nati-pnpm-${appId}:/app/.pnpm-store`,
       "-e",
       "PNPM_STORE_PATH=/app/.pnpm-store",
       "-w",
       "/app",
-      `dyad-app-${appId}`,
+      `nati-app-${appId}`,
       "sh",
       "-c",
       getCommand({ installCommand, startCommand }),
@@ -599,7 +599,7 @@ async function stopDockerContainersOnPort(port: number): Promise<void> {
 }
 
 export function registerAppHandlers() {
-  handle("restart-dyad", async () => {
+  handle("restart-nati", async () => {
     app.relaunch();
     app.quit();
   });
@@ -1073,12 +1073,12 @@ export function registerAppHandlers() {
             // If running in Docker mode, also remove container volumes so deps reinstall freshly
             if (runtimeMode === "docker") {
               logger.log(
-                `Docker mode detected for app ${appId}. Removing Docker volumes dyad-pnpm-${appId}...`,
+                `Docker mode detected for app ${appId}. Removing Docker volumes nati-pnpm-${appId}...`,
               );
               try {
                 await removeDockerVolumesForApp(appId);
                 logger.log(
-                  `Removed Docker volumes for app ${appId} (dyad-pnpm-${appId}).`,
+                  `Removed Docker volumes for app ${appId} (nati-pnpm-${appId}).`,
                 );
               } catch (e) {
                 // Best-effort cleanup; log and continue
@@ -1419,11 +1419,11 @@ export function registerAppHandlers() {
     // Doing this last because it's the most time-consuming and the least important
     // in terms of resetting the app state.
     logger.log("removing all app files...");
-    const dyadAppPath = getDyadAppPath(".");
-    if (fs.existsSync(dyadAppPath)) {
-      await fsPromises.rm(dyadAppPath, { recursive: true, force: true });
+    const natiAppPath = getDyadAppPath(".");
+    if (fs.existsSync(natiAppPath)) {
+      await fsPromises.rm(natiAppPath, { recursive: true, force: true });
       // Recreate the base directory
-      await fsPromises.mkdir(dyadAppPath, { recursive: true });
+      await fsPromises.mkdir(natiAppPath, { recursive: true });
     }
     logger.log("all app files removed.");
     logger.log("reset all complete.");
