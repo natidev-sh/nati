@@ -184,7 +184,7 @@ async function applyComponentTagger(appPath: string) {
     await gitAddAll({ path: appPath });
     await gitCommit({
       path: appPath,
-      message: "[nati] add Dyad component tagger",
+      message: "[nati] add Nati component tagger",
     });
     logger.info("Successfully committed changes");
   } catch (err) {

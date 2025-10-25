@@ -61,8 +61,14 @@ const config: ForgeConfig = {
         schemes: ["nati"],
       },
     ],
-    // Windows: provide base path without extension; ensure ./assets/win/app.ico exists
-    icon: "./assets/win/app",
+    // Platform-specific icons
+    icon: process.platform === "win32" 
+      ? "./assets/win/app"  // Windows: provide base path without extension
+      : process.platform === "darwin"
+      ? "./assets/icon/logo.icns"  // macOS: .icns file
+      : "./assets/icon/logo.png",  // Linux: .png file
+    // Fix Linux binary naming issue
+    executableName: "nati",
 
     osxSign: isEndToEndTestBuild
       ? undefined
@@ -97,10 +103,23 @@ const config: ForgeConfig = {
     }),
     new MakerZIP({}, ["darwin"]),
     ...(isLinux || isCI ? [
-      new MakerRpm({}),
+      new MakerRpm({
+        options: {
+          icon: "./assets/icon/logo.png",
+          productName: "Nati",
+          genericName: "AI App Builder",
+          description: "Free, local, open-source AI app builder",
+          categories: ["Development"],
+        },
+      }),
       new MakerDeb({
         options: {
           mimeType: ["x-scheme-handler/nati"],
+          icon: "./assets/icon/logo.png",
+          productName: "Nati",
+          genericName: "AI App Builder",
+          description: "Free, local, open-source AI app builder",
+          categories: ["Development"],
         },
       })
     ] : []),

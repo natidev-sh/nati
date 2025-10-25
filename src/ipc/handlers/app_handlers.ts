@@ -82,6 +82,44 @@ let proxyWorker: Worker | null = null;
 // to find node/pnpm.
 fixPath();
 
+// Enhanced cleanup function for app resources
+async function cleanupAppResources(appId: number): Promise<void> {
+  try {
+    // Clean up existing proxy worker
+    if (proxyWorker) {
+      proxyWorker.terminate();
+      proxyWorker = null;
+    }
+
+    // Clean up existing app process
+    const existingApp = runningApps.get(appId);
+    if (existingApp) {
+      logger.log(`Cleaning up existing app ${appId} (processId ${existingApp.processId})`);
+      await stopAppByInfo(appId, existingApp);
+    }
+
+    // Clean up port 32100 to prevent conflicts
+    await cleanUpPort(32100);
+    
+    // Additional cleanup for Docker containers
+    try {
+      const containerName = `dyad-app-${appId}`;
+      const { exec } = await import("child_process");
+      const { promisify } = await import("util");
+      const execAsync = promisify(exec);
+      
+      // Stop and remove any existing Docker container
+      await execAsync(`docker stop ${containerName} 2>/dev/null || true`);
+      await execAsync(`docker rm ${containerName} 2>/dev/null || true`);
+    } catch (error) {
+      // Docker cleanup errors are non-critical
+      logger.debug(`Docker cleanup warning for app ${appId}:`, error);
+    }
+  } catch (error) {
+    logger.error(`Error during cleanup for app ${appId}:`, error);
+  }
+}
+
 async function executeApp({
   appPath,
   appId,
@@ -97,10 +135,9 @@ async function executeApp({
   installCommand?: string | null;
   startCommand?: string | null;
 }): Promise<void> {
-  if (proxyWorker) {
-    proxyWorker.terminate();
-    proxyWorker = null;
-  }
+  // Enhanced cleanup before starting new app
+  await cleanupAppResources(appId);
+  
   const settings = readSettings();
   const runtimeMode = settings.runtimeMode2 ?? "host";
 
@@ -226,13 +263,38 @@ function listenToProcess({
         appId,
       });
 
-      const urlMatch = message.match(/(https?:\/\/localhost:\d+\/?)/);
-      if (urlMatch) {
-        proxyWorker = await startProxy(urlMatch[1], {
+      // Enhanced URL detection to handle port changes and different Vite output formats
+      const urlPatterns = [
+        /(https?:\/\/localhost:\d+\/?)/,  // Standard localhost:port
+        /Local:\s*(https?:\/\/localhost:\d+\/?)/,  // Vite "Local:" format
+        /Network:\s*(https?:\/\/localhost:\d+\/?)/,  // Vite "Network:" format
+      ];
+      
+      let detectedUrl: string | null = null;
+      for (const pattern of urlPatterns) {
+        const match = message.match(pattern);
+        if (match) {
+          detectedUrl = match[1] || match[0];
+          break;
+        }
+      }
+      
+      if (detectedUrl) {
+        logger.log(`Detected URL change for app ${appId}: ${detectedUrl}`);
+        
+        // Stop existing proxy worker if running
+        if (proxyWorker) {
+          proxyWorker.terminate();
+          proxyWorker = null;
+        }
+        
+        // Start new proxy with the updated URL
+        proxyWorker = await startProxy(detectedUrl, {
           onStarted: (proxyUrl) => {
+            logger.log(`Proxy server started for app ${appId}: ${proxyUrl}`);
             safeSend(event.sender, "app:output", {
               type: "stdout",
-              message: `[nati-proxy-server]started=[${proxyUrl}] original=[${urlMatch[1]}]`,
+              message: `[nati-proxy-server]started=[${proxyUrl}] original=[${detectedUrl}]`,
               appId,
             });
           },
