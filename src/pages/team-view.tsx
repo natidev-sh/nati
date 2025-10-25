@@ -12,8 +12,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { createClient } from '@supabase/supabase-js';
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
 import {
   Dialog,
   DialogContent,
@@ -73,10 +73,6 @@ export default function TeamViewPage() {
   const [roles, setRoles] = useState<any[]>([]);
   const [newPost, setNewPost] = useState('');
   const [posting, setPosting] = useState(false);
-
-  const SUPABASE_URL = 'https://cvsqiyjfqvdptjnxefbk.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2c3FpeWpmcXZkcHRqbnhlZmJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAwNDU5NTYsImV4cCI6MjA3NTYyMTk1Nn0.uc-wEsnkKtZjscmmJUIJ64qZJXGHQpp8cYwjEhWBivo';
-  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   useEffect(() => {
     async function initSession() {
@@ -640,10 +636,6 @@ function MembersTab({ members, canManage }: any) {
   const handleRoleChange = async (memberId: string, newRole: string) => {
     setChangingRole(memberId);
     try {
-      const supabase = createClient(
-        'https://cvsqiyjfqvdptjnxefbk.supabase.co',
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2c3FpeWpmcXZkcHRqbnhlZmJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAwNDU5NTYsImV4cCI6MjA3NTYyMTk1Nn0.uc-wEsnkKtZjscmmJUIJ64qZJXGHQpp8cYwjEhWBivo'
-      );
 
       const { error } = await supabase
         .from('team_members')
@@ -994,6 +986,8 @@ function FilesTab({ files, teamId }: any) {
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const { settings } = useSettings();
+  const userId = settings?.natiUser?.id;
 
   const ALLOWED_EXTENSIONS = [
     // Archives
@@ -1057,10 +1051,6 @@ function FilesTab({ files, teamId }: any) {
 
     setUploading(true);
     try {
-      const supabase = createClient(
-        'https://cvsqiyjfqvdptjnxefbk.supabase.co',
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2c3FpeWpmcXZkcHRqbnhlZmJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAwNDU5NTYsImV4cCI6MjA3NTYyMTk1Nn0.uc-wEsnkKtZjscmmJUIJ64qZJXGHQpp8cYwjEhWBivo'
-      );
 
       // Upload file to Supabase Storage
       const filePath = `${teamId}/${Date.now()}-${file.name}`;
@@ -1080,7 +1070,7 @@ function FilesTab({ files, teamId }: any) {
         .from('team_files')
         .insert({
           team_id: teamId,
-          user_id: (await import('@/hooks/useSettings')).useSettings.getState().natiUser?.id,
+          user_id: userId,
           file_name: file.name,
           file_path: publicUrl,
           file_size: file.size,
@@ -1176,24 +1166,25 @@ function FilesTab({ files, teamId }: any) {
       ) : (
         <div className="grid gap-3">
           {files.map((file: any) => {
-            const ext = file.file_name.split('.').pop()?.toLowerCase();
+            const fileName = file.file_name || '';
+            const ext = fileName.split('.').pop()?.toLowerCase() || '';
             let icon = FileText;
             let iconColor = 'from-gray-500 to-gray-600';
             
             // Determine icon based on file type
-            if (['.zip', '.rar', '.7z', '.tar', '.gz'].includes('.' + ext)) {
+            if (ext && ['.zip', '.rar', '.7z', '.tar', '.gz'].includes('.' + ext)) {
               icon = Archive;
               iconColor = 'from-orange-500 to-red-600';
-            } else if (['.psd', '.ai', '.sketch', '.fig', '.xd', '.svg'].includes('.' + ext)) {
+            } else if (ext && ['.psd', '.ai', '.sketch', '.fig', '.xd', '.svg'].includes('.' + ext)) {
               icon = Palette;
               iconColor = 'from-purple-500 to-pink-600';
-            } else if (['.js', '.jsx', '.ts', '.tsx', '.py', '.java', '.cpp', '.c', '.h', '.css', '.scss', '.html', '.json', '.xml', '.yaml', '.yml', '.md', '.sh', '.bat', '.sql', '.go', '.rs', '.php'].includes('.' + ext)) {
+            } else if (ext && ['.js', '.jsx', '.ts', '.tsx', '.py', '.java', '.cpp', '.c', '.h', '.css', '.scss', '.html', '.json', '.xml', '.yaml', '.yml', '.md', '.sh', '.bat', '.sql', '.go', '.rs', '.php'].includes('.' + ext)) {
               icon = Code;
               iconColor = 'from-blue-500 to-indigo-600';
-            } else if (['.png', '.jpg', '.jpeg', '.gif', '.webp'].includes('.' + ext)) {
+            } else if (ext && ['.png', '.jpg', '.jpeg', '.gif', '.webp'].includes('.' + ext)) {
               icon = Image;
               iconColor = 'from-green-500 to-emerald-600';
-            } else if (['.pdf', '.doc', '.docx'].includes('.' + ext)) {
+            } else if (ext && ['.pdf', '.doc', '.docx'].includes('.' + ext)) {
               icon = FileText;
               iconColor = 'from-red-500 to-orange-600';
             }
@@ -1210,10 +1201,10 @@ function FilesTab({ files, teamId }: any) {
                     <Icon className="h-5 w-5" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold truncate">{file.file_name}</h3>
+                    <h3 className="font-semibold truncate">{fileName || 'Unnamed file'}</h3>
                     <p className="text-xs text-muted-foreground">
                       {file.file_size ? `${(file.file_size / 1024).toFixed(2)} KB` : 'Unknown size'} • 
-                      Uploaded {new Date(file.created_at).toLocaleDateString()}
+                      Uploaded {file.created_at ? new Date(file.created_at).toLocaleDateString() : 'Unknown date'}
                     </p>
                   </div>
                 </div>
@@ -1252,10 +1243,6 @@ function RolesTab({ roles, canManage, teamId }: any) {
 
     setSaving(true);
     try {
-      const supabase = createClient(
-        'https://cvsqiyjfqvdptjnxefbk.supabase.co',
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2c3FpeWpmcXZkcHRqbnhlZmJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAwNDU5NTYsImV4cCI6MjA3NTYyMTk1Nn0.uc-wEsnkKtZjscmmJUIJ64qZJXGHQpp8cYwjEhWBivo'
-      );
 
       const { error } = await supabase
         .from('team_roles')

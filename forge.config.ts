@@ -50,6 +50,8 @@ const ignore = (file: string) => {
 };
 
 const isEndToEndTestBuild = process.env.E2E_TEST_BUILD === "true";
+const isLinux = process.platform === "linux";
+const isCI = process.env.CI === "true";
 
 const config: ForgeConfig = {
   packagerConfig: {
@@ -94,12 +96,14 @@ const config: ForgeConfig = {
       // signWithParams: `/sha1 ${process.env.SM_CODE_SIGNING_CERT_SHA1_HASH} /tr http://timestamp.digicert.com /td SHA256 /fd SHA256`,
     }),
     new MakerZIP({}, ["darwin"]),
-    new MakerRpm({}),
-    new MakerDeb({
-      options: {
-        mimeType: ["x-scheme-handler/dyad"],
-      },
-    }),
+    ...(isLinux || isCI ? [
+      new MakerRpm({}),
+      new MakerDeb({
+        options: {
+          mimeType: ["x-scheme-handler/nati"],
+        },
+      })
+    ] : []),
   ],
   publishers: [
     {

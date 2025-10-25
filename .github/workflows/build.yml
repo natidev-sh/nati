@@ -1,0 +1,89 @@
+name: Build Linux Packages
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: package-lock.json
+          
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund --progress=false
+        
+      - name: Build Linux packages
+        run: npm run make:linux
+        
+      - name: Upload Linux packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-packages
+          path: out/make/
+          retention-days: 7
+
+  # build-macos:
+  #   runs-on: macos-latest
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
+  #       
+  #     - name: Setup Node.js
+  #       uses: actions/setup-node@v4
+  #       with:
+  #         node-version: 20
+  #         cache: npm
+  #         cache-dependency-path: package-lock.json
+  #         
+  #     - name: Install dependencies
+  #       run: npm ci --no-audit --no-fund --progress=false
+  #       
+  #     - name: Build macOS packages
+  #       run: npm run make -- --platform=darwin
+  #       
+  #     - name: Upload macOS packages
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: macos-packages
+  #         path: out/make/
+  #         retention-days: 7
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: package-lock.json
+          
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund --progress=false
+        
+      - name: Build Windows packages
+        run: npm run make -- --platform=win32
+        
+      - name: Upload Windows packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-packages
+          path: out/make/
+          retention-days: 7
