@@ -5,7 +5,7 @@ import {
   previewErrorMessageAtom,
 } from "@/atoms/appAtoms";
 import { useAtomValue, useSetAtom, useAtom } from "jotai";
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -52,13 +52,7 @@ const ErrorBanner = ({ error, onDismiss, onAIFix }: ErrorBannerProps) => {
   const [isCollapsed, setIsCollapsed] = useState(true);
   const { isStreaming } = useStreamChat();
   if (!error) return null;
-  
-  // Enhanced error detection
   const isDockerError = error.includes("Cannot connect to the Docker");
-  const isPortError = error.includes("port") && error.includes("already in use");
-  const isTimeoutError = error.includes("timeout") || error.includes("ETIMEDOUT");
-  const isProcessError = error.includes("spawn") || error.includes("process");
-  const isNetworkError = error.includes("ECONNREFUSED") || error.includes("network");
 
   const getTruncatedError = () => {
     const firstLine = error.split("\n")[0];
@@ -110,14 +104,6 @@ const ErrorBanner = ({ error, onDismiss, onAIFix }: ErrorBannerProps) => {
             <span className="font-medium">Tip: </span>
             {isDockerError
               ? "Make sure Docker Desktop is running and try restarting the app."
-              : isPortError
-              ? "Port conflict detected. Try restarting the app or check if another process is using the port."
-              : isTimeoutError
-              ? "Connection timeout. The server may be slow to start. Try restarting the app."
-              : isProcessError
-              ? "Process spawn error. Check if Node.js and dependencies are properly installed."
-              : isNetworkError
-              ? "Network connection failed. Check your internet connection and firewall settings."
               : "Check if restarting the app fixes the error."}
           </span>
         </div>
@@ -237,13 +223,9 @@ export const PreviewIframe = ({ loading }: { loading: boolean }) => {
   const { streamMessage } = useStreamChat();
   const { routes: availableRoutes } = useParseRouter(selectedAppId);
   const { restartApp } = useRunApp();
-
-  // Auto-recovery state
-  const [isStuck, setIsStuck] = useState(false);
-  const [retryCount, setRetryCount] = useState(0);
-  const [lastHealthCheck, setLastHealthCheck] = useState(Date.now());
-  const healthCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const stuckTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Timeout to restart if server doesn't start within reasonable time
+  const [startupTimeoutActive, setStartupTimeoutActive] = useState(false);
 
   // Navigation state
   const [isComponentSelectorInitialized, setIsComponentSelectorInitialized] =
@@ -260,85 +242,6 @@ export const PreviewIframe = ({ loading }: { loading: boolean }) => {
 
   //detect if the user is using Mac
   const isMac = navigator.platform.toUpperCase().indexOf("MAC") >= 0;
-
-  // Health check and auto-recovery logic
-  useEffect(() => {
-    if (!appUrl || loading) {
-      // Clear any existing health checks when not loading
-      if (healthCheckIntervalRef.current) {
-        clearInterval(healthCheckIntervalRef.current);
-        healthCheckIntervalRef.current = null;
-      }
-      if (stuckTimeoutRef.current) {
-        clearTimeout(stuckTimeoutRef.current);
-        stuckTimeoutRef.current = null;
-      }
-      return;
-    }
-
-    // Start health check interval
-    healthCheckIntervalRef.current = setInterval(() => {
-      const now = Date.now();
-      const timeSinceLastCheck = now - lastHealthCheck;
-      
-      // If no activity for 30 seconds, consider it stuck
-      if (timeSinceLastCheck > 30000) {
-        console.warn("Preview appears stuck, initiating auto-recovery");
-        setIsStuck(true);
-        handleAutoRecovery();
-      }
-    }, 10000); // Check every 10 seconds
-
-    // Set up stuck timeout
-    stuckTimeoutRef.current = setTimeout(() => {
-      if (!isStuck) {
-        console.warn("Preview loading timeout, initiating auto-recovery");
-        setIsStuck(true);
-        handleAutoRecovery();
-      }
-    }, 60000); // 60 second timeout
-
-    return () => {
-      if (healthCheckIntervalRef.current) {
-        clearInterval(healthCheckIntervalRef.current);
-        healthCheckIntervalRef.current = null;
-      }
-      if (stuckTimeoutRef.current) {
-        clearTimeout(stuckTimeoutRef.current);
-        stuckTimeoutRef.current = null;
-      }
-    };
-  }, [appUrl, loading, lastHealthCheck]);
-
-  // Auto-recovery function
-  const handleAutoRecovery = useCallback(async () => {
-    if (retryCount >= 3) {
-      console.error("Max retry attempts reached, manual intervention required");
-      setErrorMessage("Preview failed to load after multiple attempts. Please restart the app manually.");
-      return;
-    }
-
-    console.log(`Attempting auto-recovery (attempt ${retryCount + 1}/3)`);
-    setRetryCount(prev => prev + 1);
-    
-    try {
-      // Force reload the iframe first
-      setReloadKey(prev => prev + 1);
-      setErrorMessage(undefined);
-      
-      // If that doesn't work, restart the app
-      setTimeout(async () => {
-        if (selectedAppId) {
-          console.log("Restarting app for auto-recovery");
-          await restartApp();
-        }
-      }, 2000);
-      
-    } catch (error) {
-      console.error("Auto-recovery failed:", error);
-      setErrorMessage(`Auto-recovery failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  }, [retryCount, selectedAppId, restartApp, setErrorMessage]);
 
   // Deactivate component selector when selection is cleared
   useEffect(() => {
@@ -473,8 +376,26 @@ export const PreviewIframe = ({ loading }: { loading: boolean }) => {
       setCurrentHistoryPosition(0);
       setCanGoBack(false);
       setCanGoForward(false);
+      setStartupTimeoutActive(false); // Server started successfully
     }
   }, [appUrl]);
+
+  // Timeout to restart if server doesn't start within 60 seconds
+  useEffect(() => {
+    if (!selectedAppId || appUrl) return; // Don't timeout if appUrl exists
+
+    setStartupTimeoutActive(true);
+    const timeout = setTimeout(() => {
+      console.warn("Server startup timeout - restarting app");
+      setStartupTimeoutActive(false);
+      restartApp();
+    }, 60000); // 60 seconds timeout
+
+    return () => {
+      clearTimeout(timeout);
+      setStartupTimeoutActive(false);
+    };
+  }, [selectedAppId, appUrl, restartApp]);
 
   // Function to activate component selector in the iframe
   const handleActivateComponentSelector = () => {
@@ -729,7 +650,7 @@ export const PreviewIframe = ({ loading }: { loading: boolean }) => {
 
         {!appUrl ? (
           <LoadingOverlay 
-            title={isStuck ? `Auto-recovery in progress (attempt ${retryCount}/3)...` : "Starting your app server..."} 
+            title="Starting your app server..." 
             onForceReload={handleReload}
           />
         ) : (
@@ -738,9 +659,6 @@ export const PreviewIframe = ({ loading }: { loading: boolean }) => {
             data-testid="preview-iframe-element"
             onLoad={() => {
               setErrorMessage(undefined);
-              setIsStuck(false);
-              setRetryCount(0);
-              setLastHealthCheck(Date.now());
             }}
             ref={iframeRef}
             key={reloadKey}

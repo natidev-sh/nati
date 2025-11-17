@@ -38,7 +38,6 @@ export function useRunApp() {
       if (proxyUrlMatch && proxyUrlMatch[1]) {
         const proxyUrl = proxyUrlMatch[1];
         const originalUrl = originalUrlMatch && originalUrlMatch[1];
-        console.log(`Setting app URL for app ${output.appId}: ${proxyUrl} (original: ${originalUrl})`);
         setAppUrlObj({
           appUrl: proxyUrl,
           appId: output.appId,
@@ -71,22 +70,8 @@ export function useRunApp() {
 
       // Process proxy server output
       processProxyServerOutput(output);
-      
-      // Fallback: Direct URL detection for cases where proxy doesn't start
-      if (output.type === "stdout" && output.appId === appId) {
-        const directUrlMatch = output.message.match(/(https?:\/\/localhost:\d+\/?)/);
-        if (directUrlMatch && !output.message.includes("[nati-proxy-server]")) {
-          const detectedUrl = directUrlMatch[1];
-          console.log(`Fallback URL detection for app ${output.appId}: ${detectedUrl}`);
-          setAppUrlObj({
-            appUrl: detectedUrl,
-            appId: output.appId,
-            originalUrl: detectedUrl,
-          });
-        }
-      }
     },
-    [setAppOutput, appId, setAppUrlObj],
+    [setAppOutput],
   );
   const runApp = useCallback(
     async (appId: number) => {

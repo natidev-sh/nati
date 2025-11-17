@@ -23,18 +23,18 @@ export function ReleaseChannelSelector() {
     if (value === "stable") {
       toast("Switched to Stable Channel", {
         description:
-          "You'll receive production-ready updates. Restart the app to apply this change.",
+          "You'll receive production-ready updates. Restart to check for stable releases.",
         action: {
-          label: "Restart Now",
+          label: "Download Stable",
           onClick: () => {
-            IpcClient.getInstance().restartDyad();
+            IpcClient.getInstance().openExternalUrl("https://natidev.com/download");
           },
         },
       });
     } else {
       toast("Switched to Beta Channel", {
         description:
-          "You'll receive experimental updates with latest features. Restart the app to apply this change.",
+          "You'll receive experimental updates with latest features. Restart to check for beta releases.",
         action: {
           label: "Restart Now",
           onClick: () => {

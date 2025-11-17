@@ -82,44 +82,6 @@ let proxyWorker: Worker | null = null;
 // to find node/pnpm.
 fixPath();
 
-// Enhanced cleanup function for app resources
-async function cleanupAppResources(appId: number): Promise<void> {
-  try {
-    // Clean up existing proxy worker
-    if (proxyWorker) {
-      proxyWorker.terminate();
-      proxyWorker = null;
-    }
-
-    // Clean up existing app process
-    const existingApp = runningApps.get(appId);
-    if (existingApp) {
-      logger.log(`Cleaning up existing app ${appId} (processId ${existingApp.processId})`);
-      await stopAppByInfo(appId, existingApp);
-    }
-
-    // Clean up port 32100 to prevent conflicts
-    await cleanUpPort(32100);
-    
-    // Additional cleanup for Docker containers
-    try {
-      const containerName = `nati-app-${appId}`;
-      const { exec } = await import("child_process");
-      const { promisify } = await import("util");
-      const execAsync = promisify(exec);
-      
-      // Stop and remove any existing Docker container
-      await execAsync(`docker stop ${containerName} 2>/dev/null || true`);
-      await execAsync(`docker rm ${containerName} 2>/dev/null || true`);
-    } catch (error) {
-      // Docker cleanup errors are non-critical
-      logger.debug(`Docker cleanup warning for app ${appId}:`, error);
-    }
-  } catch (error) {
-    logger.error(`Error during cleanup for app ${appId}:`, error);
-  }
-}
-
 async function executeApp({
   appPath,
   appId,
@@ -135,9 +97,10 @@ async function executeApp({
   installCommand?: string | null;
   startCommand?: string | null;
 }): Promise<void> {
-  // Enhanced cleanup before starting new app
-  await cleanupAppResources(appId);
-  
+  if (proxyWorker) {
+    proxyWorker.terminate();
+    proxyWorker = null;
+  }
   const settings = readSettings();
   const runtimeMode = settings.runtimeMode2 ?? "host";
 
@@ -235,7 +198,7 @@ function listenToProcess({
     // This is a hacky heuristic to pick up when drizzle is asking for user
     // to select from one of a few choices. We automatically pick the first
     // option because it's usually a good default choice. We guard this with
-    // isNeon because: 1) only Neon apps (for the official Nati templates) should
+    // isNeon because: 1) only Neon apps (for the official Dyad templates) should
     // get this template and 2) it's safer to do this with Neon apps because
     // their databases have point in time restore built-in.
     if (isNeon && message.includes("created or renamed from another")) {
@@ -263,38 +226,13 @@ function listenToProcess({
         appId,
       });
 
-      // Enhanced URL detection to handle port changes and different Vite output formats
-      const urlPatterns = [
-        /(https?:\/\/localhost:\d+\/?)/,  // Standard localhost:port
-        /Local:\s*(https?:\/\/localhost:\d+\/?)/,  // Vite "Local:" format
-        /Network:\s*(https?:\/\/localhost:\d+\/?)/,  // Vite "Network:" format
-      ];
-      
-      let detectedUrl: string | null = null;
-      for (const pattern of urlPatterns) {
-        const match = message.match(pattern);
-        if (match) {
-          detectedUrl = match[1] || match[0];
-          break;
-        }
-      }
-      
-      if (detectedUrl) {
-        logger.log(`Detected URL change for app ${appId}: ${detectedUrl}`);
-        
-        // Stop existing proxy worker if running
-        if (proxyWorker) {
-          proxyWorker.terminate();
-          proxyWorker = null;
-        }
-        
-        // Start new proxy with the updated URL
-        proxyWorker = await startProxy(detectedUrl, {
+      const urlMatch = message.match(/(https?:\/\/localhost:\d+\/?)/);
+      if (urlMatch) {
+        proxyWorker = await startProxy(urlMatch[1], {
           onStarted: (proxyUrl) => {
-            logger.log(`Proxy server started for app ${appId}: ${proxyUrl}`);
             safeSend(event.sender, "app:output", {
               type: "stdout",
-              message: `[nati-proxy-server]started=[${proxyUrl}] original=[${detectedUrl}]`,
+              message: `[nati-proxy-server]started=[${proxyUrl}] original=[${urlMatch[1]}]`,
               appId,
             });
           },
@@ -349,7 +287,7 @@ async function executeAppInDocker({
   installCommand?: string | null;
   startCommand?: string | null;
 }): Promise<void> {
-  const containerName = `nati-app-${appId}`;
+  const containerName = `dyad-app-${appId}`;
 
   // First, check if Docker is available
   try {
@@ -394,7 +332,7 @@ async function executeAppInDocker({
   }
 
   // Create a Dockerfile in the app directory if it doesn't exist
-  const dockerfilePath = path.join(appPath, "Dockerfile.nati");
+  const dockerfilePath = path.join(appPath, "Dockerfile.dyad");
   if (!fs.existsSync(dockerfilePath)) {
     const dockerfileContent = `FROM node:22-alpine
 
@@ -413,7 +351,7 @@ RUN npm install -g pnpm
   // Build the Docker image
   const buildProcess = spawn(
     "docker",
-    ["build", "-f", "Dockerfile.nati", "-t", `nati-app-${appId}`, "."],
+    ["build", "-f", "Dockerfile.dyad", "-t", `dyad-app-${appId}`, "."],
     {
       cwd: appPath,
       stdio: "pipe",
@@ -500,12 +438,12 @@ RUN npm install -g pnpm
       "-v",
       `${appPath}:/app`,
       "-v",
-      `nati-pnpm-${appId}:/app/.pnpm-store`,
+      `dyad-pnpm-${appId}:/app/.pnpm-store`,
       "-e",
       "PNPM_STORE_PATH=/app/.pnpm-store",
       "-w",
       "/app",
-      `nati-app-${appId}`,
+      `dyad-app-${appId}`,
       "sh",
       "-c",
       getCommand({ installCommand, startCommand }),
@@ -599,7 +537,7 @@ async function stopDockerContainersOnPort(port: number): Promise<void> {
 }
 
 export function registerAppHandlers() {
-  handle("restart-nati", async () => {
+  handle("restart-dyad", async () => {
     app.relaunch();
     app.quit();
   });
@@ -1073,12 +1011,12 @@ export function registerAppHandlers() {
             // If running in Docker mode, also remove container volumes so deps reinstall freshly
             if (runtimeMode === "docker") {
               logger.log(
-                `Docker mode detected for app ${appId}. Removing Docker volumes nati-pnpm-${appId}...`,
+                `Docker mode detected for app ${appId}. Removing Docker volumes dyad-pnpm-${appId}...`,
               );
               try {
                 await removeDockerVolumesForApp(appId);
                 logger.log(
-                  `Removed Docker volumes for app ${appId} (nati-pnpm-${appId}).`,
+                  `Removed Docker volumes for app ${appId} (dyad-pnpm-${appId}).`,
                 );
               } catch (e) {
                 // Best-effort cleanup; log and continue
@@ -1419,11 +1357,11 @@ export function registerAppHandlers() {
     // Doing this last because it's the most time-consuming and the least important
     // in terms of resetting the app state.
     logger.log("removing all app files...");
-    const natiAppPath = getDyadAppPath(".");
-    if (fs.existsSync(natiAppPath)) {
-      await fsPromises.rm(natiAppPath, { recursive: true, force: true });
+    const dyadAppPath = getDyadAppPath(".");
+    if (fs.existsSync(dyadAppPath)) {
+      await fsPromises.rm(dyadAppPath, { recursive: true, force: true });
       // Recreate the base directory
-      await fsPromises.mkdir(natiAppPath, { recursive: true });
+      await fsPromises.mkdir(dyadAppPath, { recursive: true });
     }
     logger.log("all app files removed.");
     logger.log("reset all complete.");

@@ -271,6 +271,7 @@ export const UserSettingsSchema = z.object({
   console: z
     .object({
       autoScroll: z.boolean().optional(),
+      autoRestart: z.boolean().optional(),
       fontSize: z.number().min(8).max(24).optional(),
       theme: z
         .object({

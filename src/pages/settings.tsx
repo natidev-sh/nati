@@ -418,26 +418,21 @@ export function GeneralSettings({ appVersion }: { appVersion: string | null }) {
     const w = window as any;
     if (!w?.electron?.ipcRenderer) return;
     const off = w.electron.ipcRenderer.on("update-status", (...args: unknown[]) => {
-      const evt = (args?.[0] || {}) as { type: string; version?: string; message?: string };
+      const evt = (args?.[0] || {}) as { type: string; version?: string };
       if (evt?.type === "checking") {
         setUpdateStatus("Checking for updates...");
-        setCheckingUpdate(true);
       } else if (evt?.type === "not-available") {
         setUpdateStatus("You're up to date");
-        setCheckingUpdate(false);
       } else if (evt?.type === "available") {
         setUpdateStatus(`Downloading update${evt.version ? ` (${evt.version})` : ""}...`);
-        setCheckingUpdate(false);
       } else if (evt?.type === "download-progress") {
         // keep banner for detailed progress; show lightweight text here
         setUpdateStatus("Downloading update...");
-        setCheckingUpdate(false);
       } else if (evt?.type === "downloaded") {
         setUpdateReady(evt.version ?? "");
         setUpdateStatus("Update ready to install");
-        setCheckingUpdate(false);
       } else if (evt?.type === "error") {
-        setUpdateStatus(`Update error: ${evt.message || "Unknown error"}`);
+        setUpdateStatus("Update error. Try again later.");
         setCheckingUpdate(false);
       }
     });
@@ -534,20 +529,9 @@ export function GeneralSettings({ appVersion }: { appVersion: string | null }) {
               const w = window as any;
               if (!w?.electron?.ipcRenderer) return;
               setCheckingUpdate(true);
-              setUpdateStatus("Checking for updates...");
               try {
-                const result = await w.electron.ipcRenderer.invoke("update:check-now");
-                if (!result.ok) {
-                  if (result.busy) {
-                    setUpdateStatus("Update check already in progress...");
-                  } else if (result.reason === "cooldown") {
-                    setUpdateStatus("Please wait before checking again...");
-                  } else {
-                    setUpdateStatus(`Update check failed: ${result.error || "Unknown error"}`);
-                  }
-                }
-              } catch (error) {
-                setUpdateStatus(`Update check failed: ${error instanceof Error ? error.message : "Unknown error"}`);
+                await w.electron.ipcRenderer.invoke("update:check-now");
+                setUpdateStatus("Checking for updates...");
               } finally {
                 setCheckingUpdate(false);
               }
