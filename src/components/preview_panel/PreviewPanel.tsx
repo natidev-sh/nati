@@ -2,6 +2,7 @@ import { useAtom, useAtomValue } from "jotai";
 import {
   appOutputAtom,
   previewModeAtom,
+  previewDeviceAtom,
   previewPanelKeyAtom,
   selectedAppIdAtom,
 } from "../../atoms/appAtoms";
@@ -17,6 +18,7 @@ import { Console } from "./Console";
 import { useRunApp } from "@/hooks/useRunApp";
 import { PublishPanel } from "./PublishPanel";
 import { useSettings } from "@/hooks/useSettings";
+import { cn } from "@/lib/utils";
 
 interface ConsoleHeaderProps {
   isOpen: boolean;
@@ -103,6 +105,7 @@ const ConsoleHeader = ({
 // Main PreviewPanel component
 export function PreviewPanel() {
   const [previewMode] = useAtom(previewModeAtom);
+  const [previewDevice, setPreviewDevice] = useAtom(previewDeviceAtom);
   const selectedAppId = useAtomValue(selectedAppIdAtom);
   const [isConsoleOpen, setIsConsoleOpen] = useState(false);
   const { runApp, stopApp, loading, app } = useRunApp();
@@ -144,6 +147,30 @@ export function PreviewPanel() {
   const messageCount = appOutput.length;
   const latestMessage =
     messageCount > 0 ? appOutput[messageCount - 1]?.message : undefined;
+
+  const deviceWidthClasses: Record<"desktop" | "tablet" | "mobile", string> = {
+    desktop: "w-full",
+    tablet: "w-[834px] max-w-full",
+    mobile: "w-[414px] max-w-full",
+  };
+
+  const deviceHeightClasses: Record<"desktop" | "tablet" | "mobile", string> = {
+    desktop: "min-h-[640px]",
+    tablet: "min-h-[640px]",
+    mobile: "min-h-[720px]",
+  };
+
+  const deviceCycle: Array<"desktop" | "tablet" | "mobile"> = [
+    "desktop",
+    "tablet",
+    "mobile",
+  ];
+
+  const cycleDevice = () => {
+    const index = deviceCycle.indexOf(previewDevice);
+    const nextDevice = deviceCycle[(index + 1) % deviceCycle.length];
+    setPreviewDevice(nextDevice);
+  };
 
   useEffect(() => {
     const previousAppId = runningAppIdRef.current;
@@ -194,18 +221,38 @@ export function PreviewPanel() {
       <div className="flex-1 overflow-hidden">
         <PanelGroup direction="vertical">
           <Panel id="content" minSize={30}>
-            <div className="h-full overflow-y-auto glass-surface border shadow-sm rounded-2xl p-1">
-              {previewMode === "preview" ? (
-                <PreviewIframe key={key} loading={loading} />
-              ) : previewMode === "code" ? (
-                <CodeView loading={loading} app={app} />
-              ) : previewMode === "configure" ? (
-                <ConfigurePanel />
-              ) : previewMode === "publish" ? (
-                <PublishPanel />
-              ) : (
-                <Problems />
-              )}
+            <div className="h-full overflow-hidden">
+              <div className="flex h-full justify-center">
+                <div
+                  className={cn(
+                    "relative flex h-full w-full flex-col overflow-hidden transition-all duration-300",
+                    previewMode === "preview"
+                      ? cn(
+                          "mx-auto",
+                          deviceWidthClasses[previewDevice],
+                          deviceHeightClasses[previewDevice],
+                        )
+                      : "",
+                  )}
+                >
+                  {previewMode === "preview" ? (
+                    <PreviewIframe
+                      key={key}
+                      loading={loading}
+                      previewDevice={previewDevice}
+                      onCycleDevice={cycleDevice}
+                    />
+                  ) : previewMode === "code" ? (
+                    <CodeView loading={loading} app={app} />
+                  ) : previewMode === "configure" ? (
+                    <ConfigurePanel />
+                  ) : previewMode === "publish" ? (
+                    <PublishPanel />
+                  ) : (
+                    <Problems />
+                  )}
+                </div>
+              </div>
             </div>
           </Panel>
           {isConsoleOpen && (

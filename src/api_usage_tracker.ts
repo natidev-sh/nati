@@ -5,6 +5,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { readSettings } from './main/settings'
 import log from 'electron-log'
+import crypto from 'crypto'
 
 const logger = log.scope('api_usage_tracker')
 
@@ -140,7 +141,7 @@ export async function updateDesktopHeartbeat(params: {
     // Find or create desktop app state
     const { data: existing } = await (supabase
       .from('desktop_app_state') as any)
-      .select('id')
+      .select('id, session_id')
       .eq('user_id', user.id)
       .eq('device_name', params.deviceName)
       .single()
@@ -152,6 +153,7 @@ export async function updateDesktopHeartbeat(params: {
       last_heartbeat: new Date().toISOString(),
       running_apps: params.runningApps,
       system_info: params.systemInfo || {},
+      session_id: existing?.session_id || crypto.randomUUID(), // Preserve or generate session_id
     }
 
     if (existing) {

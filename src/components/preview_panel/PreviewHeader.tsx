@@ -32,6 +32,7 @@ import { showError, showSuccess } from "@/lib/toast";
 import { useMutation } from "@tanstack/react-query";
 import { useCheckProblems } from "@/hooks/useCheckProblems";
 import { isPreviewOpenAtom } from "@/atoms/viewAtoms";
+import { cn } from "@/lib/utils";
 
 export type PreviewMode =
   | "preview"
@@ -41,7 +42,7 @@ export type PreviewMode =
   | "publish";
 
 const BUTTON_CLASS_NAME =
-  "no-app-region-drag cursor-pointer relative flex items-center gap-1 px-2 py-1 rounded-md text-[13px] font-medium z-10 glass-button glass-hover glass-active outline-none focus-visible:ring-2 ring-white/40 dark:ring-white/15 active:scale-[.99] transition-transform motion-reduce:transition-none motion-reduce:active:transform-none";
+  "no-app-region-drag relative flex h-8 items-center justify-center rounded-lg px-2 text-sm transition-colors focus-visible:ring-2 ring-white/40 dark:ring-white/15";
 
 // Preview Header component with preview mode toggle
 export const PreviewHeader = () => {
@@ -55,20 +56,30 @@ export const PreviewHeader = () => {
   const publishRef = useRef<HTMLButtonElement>(null);
   const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  const resizeRaf = useRef<number | null>(null);
   const { problemReport } = useCheckProblems(selectedAppId);
   const { restartApp, refreshAppIframe } = useRunApp();
 
   const isCompact = windowWidth < 860;
   const isVeryCompact = windowWidth < 640; // Ultra compact mode for very small screens
 
-  // Track window width
   useEffect(() => {
-    const handleResize = () => {
-      setWindowWidth(window.innerWidth);
+    const onResize = () => {
+      if (resizeRaf.current != null) return;
+      resizeRaf.current = window.requestAnimationFrame(() => {
+        resizeRaf.current = null;
+        const w = window.innerWidth;
+        setWindowWidth((prev) => (Math.abs(prev - w) > 8 ? w : prev));
+      });
     };
-
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    window.addEventListener("resize", onResize as any, { passive: true } as any);
+    return () => {
+      window.removeEventListener("resize", onResize as any);
+      if (resizeRaf.current != null) {
+        cancelAnimationFrame(resizeRaf.current);
+        resizeRaf.current = null;
+      }
+    };
   }, []);
 
   const selectPanel = (panel: PreviewMode) => {
@@ -173,16 +184,32 @@ export const PreviewHeader = () => {
     testId: string,
     badge?: React.ReactNode,
   ) => {
+    const showLabel = !isCompact && (mode === "preview" || mode === "publish");
+
     const buttonContent = (
       <button
         data-testid={testId}
         ref={ref}
-        className={BUTTON_CLASS_NAME}
+        className={cn(
+          BUTTON_CLASS_NAME,
+          previewMode === mode
+            ? "bg-white text-gray-900 shadow-sm dark:bg-white/90 dark:text-gray-900"
+            : "text-muted-foreground hover:bg-white/20 dark:hover:bg-white/10",
+        )}
         onClick={() => selectPanel(mode)}
       >
         {icon}
-        {!isCompact && <span>{text}</span>}
-        {badge}
+        {showLabel && <span className="ml-1 text-xs font-medium">{text}</span>}
+        {badge && (
+          <span
+            className={cn(
+              showLabel ? "ml-1" : "absolute -top-1 -right-1",
+              "pointer-events-none",
+            )}
+          >
+            {badge}
+          </span>
+        )}
       </button>
     );
 
@@ -224,14 +251,12 @@ export const PreviewHeader = () => {
 
   return (
     <TooltipProvider>
-      <div className="flex items-center justify-between px-2 py-1 mt-1">
+      <div className="flex h-10 flex-wrap items-center justify-end gap-3">
         {isVeryCompact ? (
           // Ultra compact mode: Show dropdown instead of all buttons
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button
-                className="no-app-region-drag flex items-center gap-1.5 px-2 py-1 rounded-md text-sm glass-button glass-hover glass-active outline-none focus-visible:ring-2 ring-white/40 dark:ring-white/15"
-              >
+              <button className="no-app-region-drag flex items-center gap-1.5 rounded-lg border border-white/20 bg-white/20 px-3 py-1.5 text-sm font-medium outline-none focus-visible:ring-2 ring-white/40 dark:border-white/10 dark:bg-white/10">
                 {getModeIcon(previewMode)}
                 <span className="text-xs font-medium">{getModeLabel(previewMode)}</span>
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -271,9 +296,9 @@ export const PreviewHeader = () => {
           </DropdownMenu>
         ) : (
           // Normal mode: Show all buttons
-          <div className="relative flex rounded-2xl p-0.5 gap-0.5 overflow-hidden">
+          <div className="relative flex h-8 items-center gap-1">
             <motion.div
-              className="absolute top-0.5 bottom-0.5 bg-[var(--background-lightest)] shadow rounded-md ring-1 ring-white/20 dark:ring-white/10"
+              className="pointer-events-none absolute inset-y-0 rounded-lg bg-white/25 shadow-sm dark:bg-white/15"
               animate={{
                 left: indicatorStyle.left,
                 width: indicatorStyle.width,
@@ -295,11 +320,11 @@ export const PreviewHeader = () => {
             {renderButton(
               "problems",
               problemsRef,
-              <AlertTriangle size={14} />,
+              <AlertTriangle size={16} />,
               "Problems",
               "problems-mode-button",
               displayCount && (
-                <span className="ml-0.5 px-1 py-0.5 text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-full min-w-[16px] text-center">
+                <span className="rounded-full bg-red-100 px-1 py-0.5 text-[10px] font-medium text-red-700 dark:bg-red-900/30 dark:text-red-300">
                   {displayCount}
                 </span>
               ),
@@ -307,59 +332,59 @@ export const PreviewHeader = () => {
             {renderButton(
               "code",
               codeRef,
-              <Code size={14} />,
+              <Code size={16} />,
               "Code",
               "code-mode-button",
             )}
             {renderButton(
               "configure",
               configureRef,
-              <Wrench size={14} />,
+              <Wrench size={16} />,
               "Configure",
               "configure-mode-button",
             )}
             {renderButton(
               "publish",
               publishRef,
-              <Globe size={14} />,
+              <Globe size={16} />,
               "Publish",
               "publish-mode-button",
             )}
           </div>
         )}
-        <div className="flex items-center">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                data-testid="preview-more-options-button"
-                className="no-app-region-drag flex items-center justify-center p-1.5 rounded-md text-sm glass-button glass-hover glass-active outline-none focus-visible:ring-2 ring-white/40 dark:ring-white/15 dark:shadow-[0_0_0_3px_rgba(255,255,255,.06)]"
-                title="More options"
-              >
-                <MoreVertical size={16} />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-60">
-              <DropdownMenuItem onClick={onCleanRestart}>
-                <Cog size={16} />
-                <div className="flex flex-col">
-                  <span>Rebuild</span>
-                  <span className="text-xs text-muted-foreground">
-                    Re-installs node_modules and restarts
-                  </span>
-                </div>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={onClearSessionData}>
-                <Trash2 size={16} />
-                <div className="flex flex-col">
-                  <span>Clear Cache</span>
-                  <span className="text-xs text-muted-foreground">
-                    Clears cookies and local storage and other app cache
-                  </span>
-                </div>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+        <div className="flex h-8 items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  data-testid="preview-more-options-button"
+                  className="no-app-region-drag flex h-8 w-8 items-center justify-center rounded-lg border border-white/20 bg-white/10 outline-none focus-visible:ring-2 ring-white/40 dark:border-white/10 dark:bg-white/10"
+                  title="More options"
+                >
+                  <MoreVertical size={16} />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-60">
+                <DropdownMenuItem onClick={onCleanRestart}>
+                  <Cog size={16} />
+                  <div className="flex flex-col">
+                    <span>Rebuild</span>
+                    <span className="text-xs text-muted-foreground">
+                      Re-installs node_modules and restarts
+                    </span>
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={onClearSessionData}>
+                  <Trash2 size={16} />
+                  <div className="flex flex-col">
+                    <span>Clear Cache</span>
+                    <span className="text-xs text-muted-foreground">
+                      Clears cookies and local storage and other app cache
+                    </span>
+                  </div>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
       </div>
     </TooltipProvider>
   );

@@ -493,6 +493,16 @@ export class IpcClient {
     }
   }
 
+  public async startChatStream(params: {
+    prompt: string;
+    chatId: number;
+    redo?: boolean;
+    attachments?: any[];
+    selectedComponent?: ComponentSelection | null;
+  }): Promise<void> {
+    await this.ipcRenderer.invoke("chat:stream", params);
+  }
+
   // Method to cancel an ongoing stream
   public cancelChatStream(chatId: number): void {
     this.ipcRenderer.invoke("chat:cancel", chatId);

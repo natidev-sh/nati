@@ -31,6 +31,15 @@ export const MODEL_OPTIONS: Record<string, ModelOption[]> = {
       temperature: 1,
       dollarSigns: 3,
     },
+    {
+    name: "gpt-5-codex",
+    displayName: "GPT-5 Codex",
+    description: "OpenAI's code-oriented GPT-5 variant with reasoning.",
+    maxOutputTokens: 128_000,
+    contextWindow: 400_000,
+    temperature: 0,
+    dollarSigns: 2,
+    },
     // https://platform.openai.com/docs/models/gpt-5-mini
     {
       name: "gpt-5-mini",
@@ -137,6 +146,16 @@ export const MODEL_OPTIONS: Record<string, ModelOption[]> = {
       contextWindow: 1_048_576,
       temperature: 0,
       dollarSigns: 2,
+    },
+    {
+      name: "gemini-3-0-pro-preview",
+      displayName: "Gemini 3.0 Pro (preview)",
+      description: "Google's next-gen Gemini 3.0 Pro reasoning model",
+      tag: "NEW",
+      maxOutputTokens: 65_536 - 1,
+      contextWindow: 2_000_000,
+      temperature: 0,
+      dollarSigns: 3,
     },
   ],
   vertex: [

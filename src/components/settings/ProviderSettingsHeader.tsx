@@ -5,6 +5,7 @@ import {
   GiftIcon,
   KeyRound,
   Settings as SettingsIcon,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -19,6 +20,7 @@ interface ProviderSettingsHeaderProps {
   isDyad: boolean;
   onBackClick: () => void;
   providerLogo?: string;
+  badgeLabel?: string;
 }
 
 function getKeyButtonText({
@@ -45,6 +47,7 @@ export function ProviderSettingsHeader({
   isDyad,
   onBackClick,
   providerLogo,
+  badgeLabel,
 }: ProviderSettingsHeaderProps) {
   const handleGetApiKeyClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
@@ -75,6 +78,12 @@ export function ProviderSettingsHeader({
           <div className="flex-1 min-w-0">
             <h1 className="text-3xl font-bold mb-2">
               {providerDisplayName}
+              {badgeLabel && (
+                <span className="ml-3 inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full bg-sky-500 text-white shadow-sm">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  {badgeLabel}
+                </span>
+              )}
             </h1>
             <div className="flex items-center gap-3 flex-wrap">
               {isLoading ? (

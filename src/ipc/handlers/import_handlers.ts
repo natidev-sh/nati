@@ -184,7 +184,7 @@ export function registerImportHandlers() {
       let githubBranch: string | null = branch;
 
       try {
-        const match = githubUrl.match(/github\.com[\/:]([^\/]+)\/([^\/]+?)(\.git)?$/);
+        const match = githubUrl.match(/github\.com[/:]([^/]+)\/([^/]+?)(\.git)?$/);
         if (match) {
           githubOrg = match[1];
           githubRepo = match[2].replace(/\.git$/, "");

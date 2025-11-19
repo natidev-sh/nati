@@ -192,6 +192,7 @@ export function ProviderSettingsGrid() {
               : id.includes("gemini") || id.includes("google")
               ? googleGeminiLogo || googleLogo
               : openrouterLogo;
+            const isGeminiNew = provider.id === "google";
 
             return (
               <div
@@ -209,6 +210,14 @@ export function ProviderSettingsGrid() {
                       <div className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold shadow-lg">
                         <Crown className="h-3 w-3" />
                         PRO
+                      </div>
+                    </div>
+                  )}
+                  {!isNati && isGeminiNew && (
+                    <div className="absolute top-3 right-3">
+                      <div className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-sky-500 text-white text-xs font-bold shadow">
+                        <Sparkles className="h-3 w-3" />
+                        NEW
                       </div>
                     </div>
                   )}

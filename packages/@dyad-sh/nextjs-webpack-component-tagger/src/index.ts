@@ -67,7 +67,7 @@ export default function dyadTaggerLoader(this: any, code: string) {
             }
           } catch (error) {
             console.warn(
-              `[dyad-tagger] Warning: Failed to process JSX node in ${this.resourcePath}:`,
+              `[nati-error-tag] Warning: Failed to process JSX node in ${this.resourcePath}:`,
               error,
             );
           }
@@ -86,7 +86,7 @@ export default function dyadTaggerLoader(this: any, code: string) {
       };
     } catch (error) {
       console.warn(
-        `[dyad-tagger] Warning: Failed to transform ${this.resourcePath}:`,
+        `[nati-error-tag] Warning: Failed to transform ${this.resourcePath}:`,
         error,
       );
       return null;
@@ -102,7 +102,7 @@ export default function dyadTaggerLoader(this: any, code: string) {
       }
     })
     .catch((err) => {
-      console.error(`[dyad-tagger] ERROR in ${this.resourcePath}:`, err);
+      console.error(`[nati-error-tag] ERROR in ${this.resourcePath}:`, err);
       // Return original code instead of throwing
       callback(null, code);
     });

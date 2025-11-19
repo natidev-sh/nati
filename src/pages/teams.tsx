@@ -206,10 +206,22 @@ export default function TeamsPage() {
           return
         }
         
-        const teamsData = data?.map((m: any) => ({
-          ...m.team,
-          myRole: m.role
-        })) || []
+        const teamsData = data?.map((m: any) => {
+          // Handle both nested object and array responses from Supabase
+          const team = Array.isArray(m.team) ? m.team[0] : m.team;
+          
+          if (!team || !team.id) {
+            console.warn('Invalid team data:', m);
+            return null;
+          }
+          
+          return {
+            id: team.id,
+            name: team.name || 'Unnamed Team',
+            slug: team.slug,
+            myRole: m.role || 'member'
+          };
+        }).filter(Boolean) || []
         
         setTeams(teamsData)
         // Don't auto-select team to avoid loading data immediately
@@ -447,7 +459,12 @@ export default function TeamsPage() {
               <h3 className="text-sm font-semibold text-muted-foreground px-3 mb-2">
                 Your Teams
               </h3>
-              {teams.map((team: any) => (
+              {teams.map((team: any) => {
+                if (!team || !team.id) return null;
+                const teamName = team.name || 'Unnamed Team';
+                const teamInitial = teamName.charAt(0).toUpperCase();
+                
+                return (
                 <div
                   key={team.id}
                   onClick={() => setSelectedTeam(team)}
@@ -460,14 +477,14 @@ export default function TeamsPage() {
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold">
-                        {team.name.charAt(0).toUpperCase()}
+                        {teamInitial}
                       </div>
                       <div>
-                        <h4 className="font-semibold">{team.name}</h4>
+                        <h4 className="font-semibold">{teamName}</h4>
                         <div className="flex items-center gap-1.5">
                           {getRoleIcon(team.myRole)}
                           <p className="text-xs text-muted-foreground capitalize">
-                            {team.myRole}
+                            {team.myRole || 'member'}
                           </p>
                         </div>
                       </div>
@@ -487,7 +504,8 @@ export default function TeamsPage() {
                     </Button>
                   )}
                 </div>
-              ))}
+              );
+              })}
             </div>
 
             {/* Team Details */}
@@ -497,9 +515,9 @@ export default function TeamsPage() {
                 <div className="p-6 rounded-lg border">
                   <div className="flex items-start justify-between mb-4">
                     <div>
-                      <h2 className="text-xl font-bold">{selectedTeam.name}</h2>
+                      <h2 className="text-xl font-bold">{selectedTeam.name || 'Unnamed Team'}</h2>
                       <p className="text-sm text-muted-foreground capitalize">
-                        Your role: {selectedTeam.myRole}
+                        Your role: {selectedTeam.myRole || 'member'}
                       </p>
                     </div>
                   </div>
@@ -575,7 +593,11 @@ export default function TeamsPage() {
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      {sharedApps.map((app) => (
+                      {sharedApps.map((app) => {
+                        const appName = app.name || 'Unnamed App';
+                        const appInitial = appName.charAt(0).toUpperCase();
+                        
+                        return (
                         <div
                           key={app.id}
                           className="p-4 rounded-lg border hover:bg-accent transition-colors"
@@ -584,11 +606,11 @@ export default function TeamsPage() {
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-1">
                                 <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm">
-                                  {app.name.charAt(0).toUpperCase()}
+                                  {appInitial}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <h4 className="font-semibold text-sm truncate">{app.name}</h4>
-                                  <p className="text-xs text-muted-foreground truncate">{app.path}</p>
+                                  <h4 className="font-semibold text-sm truncate">{appName}</h4>
+                                  <p className="text-xs text-muted-foreground truncate">{app.path || 'No path'}</p>
                                 </div>
                               </div>
                               
@@ -619,7 +641,8 @@ export default function TeamsPage() {
                             </div>
                           </div>
                         </div>
-                      ))}
+                      );
+                      })}
                     </div>
                   )}
                 </div>

@@ -7,7 +7,7 @@ import { OpenRouterSetupBanner, SetupBanner } from "../SetupBanner";
 import { useStreamChat } from "@/hooks/useStreamChat";
 import { selectedChatIdAtom } from "@/atoms/chatAtoms";
 import { useAtomValue, useSetAtom } from "jotai";
-import { Loader2, RefreshCw, Undo } from "lucide-react";
+import { Loader2, RefreshCw, Undo, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useVersions } from "@/hooks/useVersions";
 import { selectedAppIdAtom } from "@/atoms/appAtoms";
@@ -158,12 +158,10 @@ export const MessagesList = forwardRef<HTMLDivElement, MessagesListProps>(
 
     return (
       <div
-        className="relative flex-1 overflow-y-auto p-4"
+        className="relative flex-1 overflow-y-auto p-4 bg-gradient-to-b from-transparent via-transparent to-transparent"
         ref={ref}
         data-testid="messages-list"
       >
-        {/* Infinite scroll up enabled; button removed */}
-
         {visibleMessages.length > 0
           ? visibleMessages.map((message, localIndex) => {
               const index = startIndex + localIndex;
@@ -201,14 +199,22 @@ export const MessagesList = forwardRef<HTMLDivElement, MessagesListProps>(
               );
             })
           : !renderSetupBanner() && (
-              <div className="flex flex-col items-center justify-center h-full max-w-2xl mx-auto">
-                <div className="flex flex-1 items-center justify-center text-gray-500">
-                  No messages yet
+              <div className="flex flex-col items-center justify-center h-full">
+                <div className="text-center space-y-3 max-w-md">
+                  <div className="inline-flex items-center justify-center w-14 h-14 rounded-xl glass-surface border border-white/10 dark:border-white/5 mb-2">
+                    <MessageSquare className="w-7 h-7 text-sidebar-foreground/50" />
+                  </div>
+                  <h3 className="text-base font-semibold glass-contrast-text">
+                    Start a conversation
+                  </h3>
+                  <p className="text-sm text-sidebar-foreground/60">
+                    Ask a question or describe what you'd like to build
+                  </p>
                 </div>
               </div>
             )}
         {!isStreaming && (
-          <div className="flex max-w-3xl mx-auto gap-2">
+          <div className="flex max-w-3xl mx-auto gap-2 mt-4">
             {!!messages.length &&
               messages[messages.length - 1].role === "assistant" &&
               messages[messages.length - 1].commitHash && (
@@ -216,6 +222,7 @@ export const MessagesList = forwardRef<HTMLDivElement, MessagesListProps>(
                   variant="outline"
                   size="sm"
                   disabled={isUndoLoading}
+                  className="glass-button glass-hover transition-all duration-200"
                   onClick={async () => {
                     if (!selectedChatId || !appId) {
                       console.error("No chat selected or app ID not available");
@@ -285,6 +292,7 @@ export const MessagesList = forwardRef<HTMLDivElement, MessagesListProps>(
                 variant="outline"
                 size="sm"
                 disabled={isRetryLoading}
+                className="glass-button glass-hover transition-all duration-200"
                 onClick={async () => {
                   if (!selectedChatId) {
                     console.error("No chat selected");
@@ -432,11 +440,11 @@ function ScrollToLatestButton({
 
   if (!visible) return null;
   return (
-    <div className="pointer-events-none absolute bottom-4 right-4">
+    <div className="pointer-events-none absolute bottom-4 right-4 z-10">
       <Button
         size="sm"
         variant="outline"
-        className="pointer-events-auto shadow-md"
+        className="pointer-events-auto glass-button glass-hover shadow-lg border-white/20 dark:border-white/10 backdrop-blur-md transition-all duration-200 hover:scale-105 active:scale-95"
         onClick={onClick}
       >
         Scroll to latest

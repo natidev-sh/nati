@@ -64,7 +64,7 @@ export default function dyadTagger(): Plugin {
               }
             } catch (error) {
               console.warn(
-                `[dyad-tagger] Warning: Failed to process JSX node in ${id}:`,
+                `[nati-error-tag] Warning: Failed to process JSX node in ${id}:`,
                 error,
               );
             }
@@ -80,7 +80,7 @@ export default function dyadTagger(): Plugin {
         };
       } catch (error) {
         console.warn(
-          `[dyad-tagger] Warning: Failed to transform ${id}:`,
+          `[nati-error-tag] Warning: Failed to transform ${id}:`,
           error,
         );
         return null;

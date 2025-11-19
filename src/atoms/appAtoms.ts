@@ -10,6 +10,9 @@ export const versionsListAtom = atom<Version[]>([]);
 export const previewModeAtom = atom<
   "preview" | "code" | "problems" | "configure" | "publish"
 >("preview");
+export const previewDeviceAtom = atom<"desktop" | "tablet" | "mobile">(
+  "desktop",
+);
 export const selectedVersionIdAtom = atom<string | null>(null);
 export const appOutputAtom = atom<AppOutput[]>([]);
 export const appUrlAtom = atom<

@@ -7,6 +7,7 @@ import { readSettings } from './main/settings'
 import { db } from './db'
 import { apps } from './db/schema'
 import { syncAppsToWeb } from './sync_apps'
+import { startRemoteCommandListener } from './remote_command_listener'
 import log from 'electron-log'
 import os from 'os'
 
@@ -21,6 +22,9 @@ export function startDesktopHeartbeat() {
   // Send initial heartbeat and sync apps immediately
   sendHeartbeat()
   syncAppsToWeb()
+  
+  // Start listening for remote commands from web
+  startRemoteCommandListener()
   
   let heartbeatCount = 0
   
@@ -47,6 +51,10 @@ export function stopDesktopHeartbeat() {
     heartbeatInterval = null
     logger.info('Desktop heartbeat stopped')
   }
+  
+  // Stop remote command listener
+  const { stopRemoteCommandListener } = require('./remote_command_listener')
+  stopRemoteCommandListener()
 }
 
 /**

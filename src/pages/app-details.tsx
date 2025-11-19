@@ -106,8 +106,8 @@ export default function AppDetailsPage() {
   };
   const detectFrameworks = useCallback((pkgJson: any, opts?: { docker?: boolean; integrations?: { github?: boolean; vercel?: boolean; supabase?: boolean; neon?: boolean }, tailwindCfg?: boolean, prismaProvider?: string | null, nodeRuntime?: string | null }): TechMeta[] => {
     const deps = {
-      ...(pkgJson?.dependencies || {}),
-      ...(pkgJson?.devDependencies || {}),
+      ...pkgJson?.dependencies,
+      ...pkgJson?.devDependencies,
     } as Record<string, string>;
     const out: TechMeta[] = [];
     // Frontend

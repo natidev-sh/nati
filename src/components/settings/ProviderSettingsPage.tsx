@@ -286,6 +286,7 @@ export function ProviderSettingsPage({ provider }: ProviderSettingsPageProps) {
           isDyad={isDyad}
           onBackClick={() => router.history.back()}
           providerLogo={providerLogo}
+          badgeLabel={!isDyad && providerData?.id === "google" ? "NEW" : undefined}
         />
 
         {settingsLoading ? (

@@ -19,6 +19,9 @@ import {
   ChevronRight,
   MousePointerClick,
   Power,
+  Monitor,
+  Tablet,
+  Smartphone,
 } from "lucide-react";
 import { selectedChatIdAtom } from "@/atoms/chatAtoms";
 import { IpcClient } from "@/ipc/ipc_client";
@@ -211,8 +214,18 @@ const LoadingOverlay = ({
   );
 };
 
+type PreviewIframeProps = {
+  loading: boolean;
+  previewDevice: "desktop" | "tablet" | "mobile";
+  onCycleDevice: () => void;
+};
+
 // Preview iframe component
-export const PreviewIframe = ({ loading }: { loading: boolean }) => {
+export const PreviewIframe = ({
+  loading,
+  previewDevice,
+  onCycleDevice,
+}: PreviewIframeProps) => {
   const selectedAppId = useAtomValue(selectedAppIdAtom);
   const { appUrl, originalUrl } = useAtomValue(appUrlAtom);
   const setAppOutput = useSetAtom(appOutputAtom);
@@ -611,26 +624,61 @@ export const PreviewIframe = ({ loading }: { loading: boolean }) => {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex space-x-1">
-          <button
-            onClick={onRestart}
-            className="flex items-center space-x-1 px-3 py-1 rounded-md text-sm glass-button glass-hover glass-active outline-none focus-visible:ring-2 ring-white/40 dark:ring-white/15 active:scale-[.99] motion-reduce:transition-none motion-reduce:active:transform-none"
-            title="Restart App"
-          >
-            <Power size={16} />
-            <span>Restart</span>
-          </button>
-          <button
-            data-testid="preview-open-browser-button"
-            onClick={() => {
-              if (originalUrl) {
-                IpcClient.getInstance().openExternalUrl(originalUrl);
-              }
-            }}
-            className="p-1 rounded glass-button glass-hover glass-active outline-none focus-visible:ring-2 ring-white/40 dark:ring-white/15 active:scale-[.99] motion-reduce:transition-none motion-reduce:active:transform-none disabled:opacity-50 disabled:cursor-not-allowed dark:text-gray-300"
-          >
-            <ExternalLink size={16} />
-          </button>
+        <div className="flex items-center space-x-1">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={onCycleDevice}
+                className="p-1.5 rounded glass-button glass-hover glass-active outline-none focus-visible:ring-2 ring-white/40 dark:ring-white/15 active:scale-[.99] motion-reduce:transition-none motion-reduce:active:transform-none"
+                data-testid="preview-cycle-device-button"
+              >
+                {previewDevice === "desktop" && <Monitor size={16} />}
+                {previewDevice === "tablet" && <Tablet size={16} />}
+                {previewDevice === "mobile" && <Smartphone size={16} />}
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>
+                Switch to {previewDevice === "desktop"
+                  ? "Tablet"
+                  : previewDevice === "tablet"
+                    ? "Mobile"
+                    : "Desktop"} view
+              </p>
+            </TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={onRestart}
+                className="p-1.5 rounded glass-button glass-hover glass-active outline-none focus-visible:ring-2 ring-white/40 dark:ring-white/15 active:scale-[.99] motion-reduce:transition-none motion-reduce:active:transform-none"
+                title="Restart App"
+              >
+                <Power size={16} />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Restart preview app</p>
+            </TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                data-testid="preview-open-browser-button"
+                onClick={() => {
+                  if (originalUrl) {
+                    IpcClient.getInstance().openExternalUrl(originalUrl);
+                  }
+                }}
+                className="p-1.5 rounded glass-button glass-hover glass-active outline-none focus-visible:ring-2 ring-white/40 dark:ring-white/15 active:scale-[.99] motion-reduce:transition-none motion-reduce:active:transform-none disabled:opacity-50 disabled:cursor-not-allowed dark:text-gray-300"
+              >
+                <ExternalLink size={16} />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Open in browser</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
       </div>
 

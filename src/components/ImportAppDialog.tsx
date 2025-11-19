@@ -206,7 +206,7 @@ export function ImportAppDialog({ isOpen, onClose }: ImportAppDialogProps) {
     
     // Extract repo name from URL for default app name
     if (url.trim()) {
-      const match = url.match(/github\.com[\/:]([^\/]+)\/([^\/]+?)(\.git)?$/);
+      const match = url.match(/github\.com[/:]([^/]+)\/([^/]+?)(\.git)?$/);
       if (match) {
         const repoName = match[2].replace(/\.git$/, "");
         setCustomAppName(repoName);

@@ -24,8 +24,6 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarRail,
-  SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { ChatList } from "./ChatList";
 import { AppList } from "./AppList";
@@ -141,51 +139,51 @@ export function AppSidebar() {
           setHoverState("clear-hover");
         }
       }}
+      className="group/sidebar top-11"
     >
-      <SidebarContent className="overflow-hidden glass-surface border-r supports-[backdrop-filter]:bg-transparent ring-1 ring-white/20 dark:ring-white/10">
-        <div className="flex mt-8 px-2 gap-2">
-          {/* Left Column: Menu items */}
-          <div className="">
-            <SidebarTrigger
-              onMouseEnter={() => {
-                setHoverState("clear-hover");
-              }}
-              // Keep the trigger minimal (no border), rely on built-in ghost variant
-            />
+      <SidebarContent className="overflow-hidden bg-(--sidebar) border-r border-sidebar-border">
+        <div className="flex h-full">
+          {/* Left Column: Menu items - Always visible */}
+          <div className="w-16 flex flex-col items-center py-4 px-2 border-r border-sidebar-border">
             <AppIcons onHoverChange={setHoverState} />
           </div>
-          {/* Right Column: Chat List Section */}
-          <div className="w-[240px] ml-1 p-2 rounded-2xl glass-surface shadow-sm">
-            <AppList show={selectedItem === "Apps"} />
-            <ChatList show={selectedItem === "Chat"} />
-            <SettingsList show={selectedItem === "Settings"} />
+          
+          {/* Right Column: Expandable content - Shows on hover/active */}
+          <div className={`
+            w-[260px] overflow-hidden transition-all duration-300 ease-out
+            ${state === "expanded" ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-4 pointer-events-none"}
+          `}>
+            <div className="p-4 h-full overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent hover:scrollbar-thumb-white/20">
+              <AppList show={selectedItem === "Apps"} />
+              <ChatList show={selectedItem === "Chat"} />
+              <SettingsList show={selectedItem === "Settings"} />
+            </div>
           </div>
         </div>
       </SidebarContent>
-      <SidebarFooter>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            {/* Change button to open dialog instead of linking */}
-            <SidebarMenuButton
-              size="sm"
-              className="font-medium w-14 flex flex-col items-center gap-1 h-14 mb-2 rounded-2xl glass-surface glass-hover outline-none focus-visible:ring-2 ring-white/40 dark:ring-white/15 transition-colors"
-              tooltip={{ children: "Help", hidden: false }}
-              onClick={() => setIsHelpDialogOpen(true)} // Open dialog on click
-            >
-              <div className="flex flex-col items-center justify-center gap-1 h-full glass-contrast-text">
-                <HelpCircle className="h-5 w-5" />
-              </div>
-              {/* Text label removed; tooltip communicates */}
-            </SidebarMenuButton>
-            <HelpDialog
-              isOpen={isHelpDialogOpen}
-              onClose={() => setIsHelpDialogOpen(false)}
-            />
-          </SidebarMenuItem>
-        </SidebarMenu>
+      
+      <SidebarFooter className="border-t border-sidebar-border bg-(--sidebar)">
+        <div className="w-16 flex flex-col items-center py-2 px-2">
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                size="sm"
+                className="h-10 w-10 p-0 hover:bg-sidebar-accent rounded-lg transition-all duration-200 hover:scale-105 active:scale-95"
+                tooltip={{ children: "Help", hidden: false }}
+                onClick={() => setIsHelpDialogOpen(true)}
+              >
+                <HelpCircle className="h-5 w-5 text-sidebar-foreground/60 hover:text-sidebar-foreground transition-colors" />
+              </SidebarMenuButton>
+              <HelpDialog
+                isOpen={isHelpDialogOpen}
+                onClose={() => setIsHelpDialogOpen(false)}
+              />
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </div>
       </SidebarFooter>
 
-      <SidebarRail className="transition-all duration-300 ease-out" />
+      {/** SidebarRail removed: open/close is hover-only, no manual toggle rail */}
     </Sidebar>
   );
 }
@@ -199,12 +197,9 @@ function AppIcons({
   const pathname = routerState.location.pathname;
 
   return (
-    // When collapsed: only show the main menu
-    <SidebarGroup className="pr-0">
-      {/* <SidebarGroupLabel>nati</SidebarGroupLabel> */}
-
+    <SidebarGroup className="pr-0 flex-1">
       <SidebarGroupContent>
-        <SidebarMenu>
+        <SidebarMenu className="space-y-1">
           {items.map((item) => {
             const isActive =
               (item.to === "/" && pathname === "/") ||
@@ -215,24 +210,29 @@ function AppIcons({
                 <SidebarMenuButton
                   asChild
                   size="sm"
-                  className="font-medium w-14"
+                  className="h-10 w-10 p-0"
                   tooltip={{ children: item.title, hidden: false }}
                 >
                   <Link
                     to={item.to}
-                  className={`relative flex flex-col items-center justify-center gap-1 h-14 mb-2 rounded-2xl glass-surface glass-hover outline-none focus-visible:ring-2 ring-white/40 dark:ring-white/15 transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-[.99] motion-reduce:transition-none motion-reduce:hover:transform-none motion-reduce:active:transform-none ${
-                    isActive ? "glass-active ring-1 ring-white/40 dark:ring-white/15 dark:shadow-[0_0_0_3px_rgba(255,255,255,.08)]" : ""
-                  }`}
+                    className={`
+                      relative flex items-center justify-center h-10 w-10 rounded-lg
+                      transition-all duration-200 ease-out
+                      ${isActive 
+                        ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-lg" 
+                        : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
+                      }
+                      hover:scale-105 active:scale-95
+                      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring
+                    `}
                     onMouseEnter={() => {
                       if (item.title === "Apps") {
                         onHoverChange("start-hover:app");
                       } else if (item.title === "Chat") {
                         onHoverChange("start-hover:chat");
                       } else if (item.title === "Settings") {
-                        // Do not auto-expand on Settings hover to avoid opening menubars
                         onHoverChange("no-hover");
-                      } else if (item.title === "Teams" || item.title === "Library" || item.title === "Hub" || item.title === "Docs") {
-                        // Do not trigger hover-based expansion for these items
+                      } else if (item.title === "Teams" || item.title === "Prompt Library" || item.title === "Templates & Plugins" || item.title === "Docs") {
                         onHoverChange("no-hover");
                       }
                     }}
@@ -240,13 +240,10 @@ function AppIcons({
                     {isActive && (
                       <span
                         aria-hidden
-                        className="absolute left-1 top-1/2 -translate-y-1/2 h-5 w-1 rounded-full"
-                        style={{ backgroundColor: "#ed3378" }}
+                        className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1 rounded-r-full bg-[#ed3378]"
                       />
                     )}
-                    <div className="flex flex-col items-center gap-1 glass-contrast-text">
-                      <item.icon className="h-14 w-5" />
-                    </div>
+                    <item.icon className="h-5 w-5" />
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

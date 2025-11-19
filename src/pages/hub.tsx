@@ -124,6 +124,19 @@ const HubPage: React.FC = () => {
     };
   }, [templates, query]);
 
+  const featuredTemplate = useMemo(
+    () => officialTemplates.find((template) => template.id === "vue"),
+    [officialTemplates],
+  );
+
+  const officialTemplatesWithoutFeatured = useMemo(
+    () =>
+      featuredTemplate
+        ? officialTemplates.filter((template) => template.id !== featuredTemplate.id)
+        : officialTemplates,
+    [officialTemplates, featuredTemplate],
+  );
+
   return (
     <div className="min-h-screen from-zinc-100 to-white dark:from-zinc-900 dark:via-zinc-950 dark:to-black">
       {/* Sticky header */}
@@ -195,14 +208,106 @@ const HubPage: React.FC = () => {
             <>
               {scope === "all" ? (
                 <>
-                  <section className="p-5 md:p-6 rounded-2xl glass-surface border shadow-sm">
-                    <header className="mb-4">
-                      <h2 className="text-2xl font-semibold">Official templates</h2>
-                      <p className="text-sm text-muted-foreground">Curated, first-party starters. {isLoading && " Loading..."}</p>
+                  {featuredTemplate && (
+                    <section className="relative overflow-hidden rounded-3xl p-6 md:p-8 glass-surface border border-white/20 dark:border-white/10 shadow-2xl backdrop-blur-xl">
+                      {/* Animated gradient background orbs */}
+                      <div className="absolute inset-0 -z-10 opacity-30 pointer-events-none">
+                        <div className="absolute top-0 left-1/4 w-64 h-64 bg-gradient-to-br from-emerald-500 via-blue-500 to-transparent rounded-full blur-3xl" />
+                        <div className="absolute bottom-0 right-1/4 w-48 h-48 bg-gradient-to-br from-purple-500 via-pink-500 to-transparent rounded-full blur-3xl" />
+                      </div>
+
+                      <header className="mb-6 flex flex-col gap-2 relative">
+                        <div className="inline-flex items-center gap-2.5 w-fit px-4 py-2 rounded-full bg-gradient-to-r from-emerald-500/20 to-blue-500/20 border border-emerald-500/30">
+                          <Sparkles className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                          <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
+                            New Official Template
+                          </span>
+                        </div>
+                        <h2 className="text-3xl md:text-4xl font-bold glass-contrast-text mt-2">
+                          {featuredTemplate.title}
+                        </h2>
+                        <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 max-w-2xl">
+                          Ship production-ready Vue apps with routing, state management, TypeScript, and sensible project structure.
+                        </p>
+                      </header>
+
+                      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start relative">
+                        <div className="lg:col-span-3">
+                          <TemplateCard
+                            key={featuredTemplate.id}
+                            template={featuredTemplate}
+                            isSelected={featuredTemplate.id === selectedTemplateId}
+                            onSelect={handleTemplateSelect}
+                            onCreateApp={handleCreateApp}
+                          />
+                        </div>
+                        
+                        <div className="lg:col-span-2 flex flex-col gap-5 p-5 rounded-2xl glass-surface border border-white/20 dark:border-white/10">
+                          <div>
+                            <h3 className="text-sm font-semibold glass-contrast-text mb-3 flex items-center gap-2">
+                              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                              What's included
+                            </h3>
+                            <ul className="space-y-2.5 text-sm text-gray-600 dark:text-gray-400">
+                              <li className="flex items-start gap-2">
+                                <span className="text-emerald-500 mt-0.5">✓</span>
+                                <span>Vue 3 + &lt;script setup&gt; with TypeScript</span>
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <span className="text-blue-500 mt-0.5">✓</span>
+                                <span>Vue Router and Pinia preconfigured</span>
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <span className="text-purple-500 mt-0.5">✓</span>
+                                <span>Vite tooling with fast HMR and build defaults</span>
+                              </li>
+                            </ul>
+                          </div>
+                          
+                          <div className="flex flex-col gap-2 pt-3 border-t border-white/10">
+                            <Button 
+                              size="sm" 
+                              onClick={() => handleTemplateSelect(featuredTemplate.id)}
+                              className="w-full justify-center gap-2"
+                            >
+                              <Sparkles className="h-4 w-4" />
+                              Set as default
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                handleTemplateSelect(featuredTemplate.id);
+                                handleCreateApp();
+                              }}
+                              className="w-full justify-center"
+                            >
+                              Create app
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </section>
+                  )}
+                  <section className="relative overflow-hidden rounded-3xl p-6 md:p-8 glass-surface border border-white/20 dark:border-white/10 shadow-xl backdrop-blur-xl">
+                    {/* Subtle gradient accent */}
+                    <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-indigo-500/10 via-transparent to-transparent rounded-full blur-3xl pointer-events-none" />
+                    
+                    <header className="mb-6 relative">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                          <Sparkles className="h-5 w-5 text-white" />
+                        </div>
+                        <div>
+                          <h2 className="text-2xl font-bold glass-contrast-text">Official templates</h2>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">Curated, first-party starters{isLoading && " • Loading..."}</p>
+                        </div>
+                      </div>
                     </header>
-                    {officialTemplates.length ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                        {officialTemplates.map((template) => (
+                    
+                    {officialTemplatesWithoutFeatured.length ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 relative">
+                        {officialTemplatesWithoutFeatured.map((template) => (
                           <TemplateCard
                             key={template.id}
                             template={template}
@@ -212,23 +317,43 @@ const HubPage: React.FC = () => {
                           />
                         ))}
                       </div>
+                    ) : featuredTemplate ? (
+                      <EmptyState label={query ? "No other official templates match your search" : "Vue is our only official template right now"} />
                     ) : (
                       <EmptyState label={query ? "No official templates match your search" : "No official templates"} />
                     )}
                   </section>
-                  <section className="p-5 md:p-6 rounded-2xl glass-surface border shadow-sm">
-                    <header className="mb-4 flex items-center justify-between">
-                      <div>
-                        <h2 className="text-2xl font-semibold">Community templates</h2>
-                        <p className="text-sm text-muted-foreground">Open-source contributions from the community.</p>
+                  <section className="relative overflow-hidden rounded-3xl p-6 md:p-8 glass-surface border border-white/20 dark:border-white/10 shadow-xl backdrop-blur-xl">
+                    {/* Animated gradient background */}
+                    <div className="absolute inset-0 -z-10 opacity-20 pointer-events-none">
+                      <div className="absolute top-0 right-1/3 w-64 h-64 bg-gradient-to-br from-amber-500 via-fuchsia-500 to-transparent rounded-full blur-3xl" />
+                      <div className="absolute bottom-0 left-1/3 w-48 h-48 bg-gradient-to-br from-indigo-500 via-purple-500 to-transparent rounded-full blur-3xl" />
+                    </div>
+
+                    <header className="mb-6 flex items-start justify-between gap-4 relative">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-amber-500 to-fuchsia-600 flex items-center justify-center shadow-lg shadow-amber-500/20">
+                          <Heart className="h-5 w-5 text-white" />
+                        </div>
+                        <div>
+                          <h2 className="text-2xl font-bold glass-contrast-text">Community templates</h2>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">Open-source contributions from the community</p>
+                        </div>
                       </div>
-                      <span className="text-xs px-2 py-1 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30">Coming soon</span>
+                      <span className="text-xs px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-500/20 to-fuchsia-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30 font-semibold whitespace-nowrap">Coming soon</span>
                     </header>
-                    <div className="relative overflow-hidden rounded-2xl border shadow-sm">
-                      <div className="absolute inset-0 bg-gradient-to-br from-amber-400/10 via-fuchsia-400/10 to-indigo-400/10 pointer-events-none" />
+                    
+                    <div className="relative overflow-hidden rounded-2xl border border-white/20 dark:border-white/10 glass-surface backdrop-blur-sm">
                       <div className="relative p-6 sm:p-8">
-                        <h3 className="text-lg font-semibold mb-1">A shared gallery for the community</h3>
-                        <p className="text-sm text-muted-foreground">Publish and discover open-source templates made by fellow builders. Star your favorites and scaffold in one click.</p>
+                        <div className="flex items-start gap-4">
+                          <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-amber-400/20 to-fuchsia-400/20 border border-amber-500/20 flex items-center justify-center flex-shrink-0">
+                            <Sparkles className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-bold glass-contrast-text mb-2">A shared gallery for the community</h3>
+                            <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">Publish and discover open-source templates made by fellow builders. Star your favorites and scaffold in one click.</p>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </section>

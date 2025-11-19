@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 
 import { formatDistanceToNow } from "date-fns";
@@ -38,6 +38,15 @@ export function ChatList({ show }: { show?: boolean }) {
   const { chats, loading, refreshChats } = useChats(selectedAppId);
   const routerState = useRouterState();
   const isChatRoute = routerState.location.pathname === "/chat";
+
+  // Memoize chats with formatted dates for performance
+  const chatsWithFormattedDates = useMemo(() => 
+    chats.map(chat => ({
+      ...chat,
+      formattedDate: formatDistanceToNow(new Date(chat.createdAt), { addSuffix: true })
+    })),
+    [chats]
+  );
 
   // Rename dialog state
   const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
@@ -159,16 +168,18 @@ export function ChatList({ show }: { show?: boolean }) {
   return (
     <>
       <SidebarGroup
-        className="overflow-y-auto h-[calc(100vh-112px)]"
+        className="overflow-y-auto h-[calc(100vh-112px)] select-none"
         data-testid="chat-list-container"
       >
-        <SidebarGroupLabel>Recent Chats</SidebarGroupLabel>
+        <SidebarGroupLabel className="px-3 py-2 text-sidebar-foreground/60 text-[11px] uppercase tracking-wide font-medium">
+          Recent Chats
+        </SidebarGroupLabel>
         <SidebarGroupContent>
-          <div className="flex flex-col space-y-4">
+          <div className="flex flex-col space-y-2">
             <Button
               onClick={handleNewChat}
               variant="outline"
-              className="flex items-center justify-start gap-2 mx-2 py-3"
+              className="flex items-center justify-start gap-2 mx-2 py-2 rounded-lg transition-all duration-200 hover:scale-[1.02] active:scale-95 hover:bg-sidebar-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
             >
               <PlusCircle size={16} />
               <span>New Chat</span>
@@ -176,7 +187,7 @@ export function ChatList({ show }: { show?: boolean }) {
             <Button
               onClick={() => setIsSearchDialogOpen(!isSearchDialogOpen)}
               variant="outline"
-              className="flex items-center justify-start gap-2 mx-2 py-3"
+              className="flex items-center justify-start gap-2 mx-2 py-2.5 rounded-lg transition-all duration-200 hover:scale-[1.02] active:scale-95 hover:bg-sidebar-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
               data-testid="search-chats-button"
             >
               <Search size={16} />
@@ -184,18 +195,18 @@ export function ChatList({ show }: { show?: boolean }) {
             </Button>
 
             {loading ? (
-              <div className="py-3 px-4 text-sm text-gray-500">
+              <div className="mx-2 mt-1 p-3 text-sm rounded-lg bg-sidebar-accent/30 text-sidebar-foreground/60">
                 Loading chats...
               </div>
             ) : chats.length === 0 ? (
-              <div className="py-3 px-4 text-sm text-gray-500">
+              <div className="mx-2 mt-1 p-3 text-sm rounded-lg bg-sidebar-accent/30 text-sidebar-foreground/60">
                 No chats found
               </div>
             ) : (
               <SidebarMenu className="space-y-1">
-                {chats.map((chat) => (
+                {chatsWithFormattedDates.map((chat) => (
                   <SidebarMenuItem key={chat.id} className="mb-1">
-                    <div className="flex w-[175px] items-center">
+                    <div className="flex w-full items-center overflow-hidden">
                       <Button
                         variant="ghost"
                         onClick={() =>
@@ -204,20 +215,18 @@ export function ChatList({ show }: { show?: boolean }) {
                             appId: chat.appId,
                           })
                         }
-                        className={`justify-start w-full text-left py-3 pr-1 hover:bg-sidebar-accent/80 ${
+                        className={`justify-start w-full text-left py-2.5 px-3 pr-1 rounded-lg transition-all duration-200 min-h-[40px] will-change-transform overflow-hidden ${
                           selectedChatId === chat.id
-                            ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                            : ""
+                            ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-lg scale-[1.02]"
+                            : "text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 hover:scale-[1.01]"
                         }`}
                       >
-                        <div className="flex flex-col w-full">
-                          <span className="truncate">
+                        <div className="flex flex-col min-w-0 flex-1 overflow-hidden">
+                          <span className="truncate text-[13px] font-medium">
                             {chat.title || "New Chat"}
                           </span>
-                          <span className="text-xs text-gray-500">
-                            {formatDistanceToNow(new Date(chat.createdAt), {
-                              addSuffix: true,
-                            })}
+                          <span className="text-[10px] opacity-60 truncate">
+                            {chat.formattedDate}
                           </span>
                         </div>
                       </Button>
@@ -231,7 +240,7 @@ export function ChatList({ show }: { show?: boolean }) {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="ml-1 w-4"
+                              className="ml-1 w-8 h-8 transition-all duration-200 hover:scale-105 active:scale-95 hover:bg-sidebar-accent/50"
                               onClick={(e) => e.stopPropagation()}
                             >
                               <MoreVertical className="h-4 w-4" />
@@ -239,13 +248,13 @@ export function ChatList({ show }: { show?: boolean }) {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent
                             align="end"
-                            className="space-y-1 p-2"
+                            className="space-y-1 p-2 bg-sidebar-accent border-sidebar-border"
                           >
                             <DropdownMenuItem
                               onClick={() =>
                                 handleRenameChat(chat.id, chat.title || "")
                               }
-                              className="px-3 py-2"
+                              className="px-3 py-2 transition-colors duration-150 hover:bg-sidebar-accent/80 focus:bg-sidebar-accent/80"
                             >
                               <Edit3 className="mr-2 h-4 w-4" />
                               <span>Rename Chat</span>
@@ -257,7 +266,7 @@ export function ChatList({ show }: { show?: boolean }) {
                                   chat.title || "New Chat",
                                 )
                               }
-                              className="px-3 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 focus:bg-red-50 dark:focus:bg-red-950/50"
+                              className="px-3 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 focus:bg-red-50 dark:focus:bg-red-950/50 transition-colors duration-150"
                             >
                               <Trash2 className="mr-2 h-4 w-4" />
                               <span>Delete Chat</span>
@@ -299,7 +308,7 @@ export function ChatList({ show }: { show?: boolean }) {
         onOpenChange={setIsSearchDialogOpen}
         onSelectChat={handleChatClick}
         appId={selectedAppId}
-        allChats={chats}
+        allChats={chatsWithFormattedDates}
       />
     </>
   );

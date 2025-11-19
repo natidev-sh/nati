@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import { atom } from "jotai";
 import { IpcClient } from "@/ipc/ipc_client";
 import {
@@ -23,6 +23,23 @@ export function useRunApp() {
   const setPreviewPanelKey = useSetAtom(previewPanelKeyAtom);
   const appId = useAtomValue(selectedAppIdAtom);
   const setPreviewErrorMessage = useSetAtom(previewErrorMessageAtom);
+  const outputBufferRef = useRef<AppOutput[]>([]);
+  const flushTimerRef = useRef<number | null>(null);
+  const MAX_OUTPUT_LINES = 2000;
+
+  const flushBufferedOutput = useCallback(() => {
+    if (!outputBufferRef.current.length) return;
+    const chunk = outputBufferRef.current;
+    outputBufferRef.current = [];
+    setAppOutput((prev) => {
+      const next = [...prev, ...chunk];
+      if (next.length > MAX_OUTPUT_LINES) {
+        return next.slice(next.length - MAX_OUTPUT_LINES);
+      }
+      return next;
+    });
+    flushTimerRef.current = null;
+  }, [setAppOutput]);
 
   const processProxyServerOutput = (output: AppOutput) => {
     const matchesProxyServerStart = output.message.includes(
@@ -65,13 +82,14 @@ export function useRunApp() {
         return; // Don't add to regular output
       }
 
-      // Add to regular app output
-      setAppOutput((prev) => [...prev, output]);
-
-      // Process proxy server output
+      // Buffer normal output (reduces re-renders) and process proxy URL detection
+      outputBufferRef.current.push(output);
       processProxyServerOutput(output);
+      if (flushTimerRef.current == null) {
+        flushTimerRef.current = window.setTimeout(flushBufferedOutput, 60);
+      }
     },
-    [setAppOutput],
+    [flushBufferedOutput],
   );
   const runApp = useCallback(
     async (appId: number) => {

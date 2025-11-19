@@ -42,4 +42,13 @@ export const localTemplatesData: Template[] = [
     githubUrl: "https://github.com/natidev-sh/nextjs-template",
     isOfficial: true,
   },
+  {
+    id: "vue",
+    title: "Vue.js Template",
+    description: "Uses Vue 3, Vite, Pinia, Vue Router and TypeScript.",
+    imageUrl:
+      "https://raw.githubusercontent.com/natidev-sh/nati/main/assets/templates/vue-template-cover.png",
+    githubUrl: "https://github.com/natidev-sh/nati-vuejs-template",
+    isOfficial: true,
+  },
 ];

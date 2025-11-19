@@ -412,7 +412,7 @@ Example bad response: <think>...</think>SELECT * FROM users`;
     }
     // naive parse for SELECT ... FROM <table>
     const m = /select\s+[\s\S]*?from\s+([a-zA-Z0-9_."]+)/i.exec(text);
-    if (m && m[1]) setLastResultTable(m[1].replace(/\"/g, ""));
+    if (m && m[1]) setLastResultTable(m[1].replace(/"/g, ""));
   };
 
   const seedRecipes: { title: string; sql: string; description?: string }[] = [
@@ -668,7 +668,7 @@ ROLLBACK;`,
     // naive parser for {a,b,c} without quotes/escapes
     const inner = s.slice(1, -1);
     if (!inner) return [] as string[];
-    return inner.split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map((x) => x.replace(/^\"|\"$/g, ""));
+    return inner.split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/).map((x) => x.replace(/^"|"$/g, ""));
   };
   const isGeometryLike = (val: any) => typeof val === "string" && /^(\(|\[|\{).*(\)|\]|\})$/.test(val) && /,/.test(val);
   const formatValue = (val: any) => {
@@ -1669,7 +1669,7 @@ ROLLBACK;`,
                                   if (editMode && hasIdColumn && typeof v !== 'object') {
                                     const rowKey = idx;
                                     const current = edited[rowKey]?.[c] ?? v;
-                                    const onSet = (val:any)=> setEdited((prev)=> ({...prev, [rowKey]: {...(prev[rowKey]||{}), [c]: val}}));
+                                    const onSet = (val:any)=> setEdited((prev)=> ({...prev, [rowKey]: {...prev[rowKey], [c]: val}}));
                                     const t = inferType(v, c);
                                     if (t === 'number') return <input className="w-full bg-transparent border rounded px-1" type="number" value={current ?? ''} onChange={(e)=> onSet(e.target.value === '' ? null : Number(e.target.value))} />;
                                     if (t === 'boolean') return <input type="checkbox" checked={Boolean(current)} onChange={(e)=> onSet(e.target.checked)} />;

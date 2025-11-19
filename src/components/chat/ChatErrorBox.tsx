@@ -17,7 +17,7 @@ export function ChatErrorBox({
       <ChatErrorContainer onDismiss={onDismiss}>
         {error}
         <span className="ml-1">
-          <ExternalLink href="https://natidev.com/pro">
+          <ExternalLink href="https://natidev.site/pro">
             Access with Nati Pro
           </ExternalLink>
         </span>{" "}

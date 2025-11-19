@@ -543,7 +543,7 @@ export const ConfigurePanel = () => {
                         from,
                         to: testEmailTo.trim(),
                         subject: "Test email from Nati (Resend)",
-                        html: `<div style=\"font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto\">Hello from <b>Nati</b> 👋<br/><br/>This is a test email sent via <a href=\"https://resend.com\">Resend</a> using your configured API key.</div>`,
+                        html: `<div style="font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto">Hello from <b>Nati</b> 👋<br/><br/>This is a test email sent via <a href="https://resend.com">Resend</a> using your configured API key.</div>`,
                       }),
                     });
                     if (!resp.ok) {

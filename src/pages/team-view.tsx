@@ -271,7 +271,7 @@ export default function TeamViewPage() {
     setSharing(true);
     try {
       // Parse GitHub URL
-      const match = repoUrl.match(/github\.com\/([^\/]+)\/([^\/]+)/);
+      const match = repoUrl.match(/github\.com\/([^/]+)\/([^/]+)/);
       if (!match) {
         toast.error('Invalid GitHub URL');
         return;

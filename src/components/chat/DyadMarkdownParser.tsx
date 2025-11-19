@@ -178,6 +178,16 @@ function preprocessUnclosedTags(content: string): {
     }
   }
 
+  try {
+    const trailingPartialPattern = new RegExp(
+      `<(?:${customTagNames.join("|")})(?![^>]*>)[\\s\\S]*$`,
+      "i",
+    );
+    if (trailingPartialPattern.test(processedContent)) {
+      processedContent = processedContent.replace(trailingPartialPattern, "");
+    }
+  } catch {}
+
   return { processedContent, inProgressTags };
 }
 
@@ -479,7 +489,7 @@ function renderCustomTag(
     case "dyad-output":
       return (
         <DyadOutput
-          type={attributes.type as "warning" | "error"}
+          type={(attributes.type as "warning" | "error" | "info") || "info"}
           message={attributes.message}
         >
           {content}

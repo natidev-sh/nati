@@ -168,6 +168,9 @@ const validReceiveChannels = [
   "deep-link-received",
   // Navigation events triggered from main (e.g., tray menu)
   "navigate",
+  // Deep link navigation to chat and follow-up remote chat trigger
+  "navigate-to-chat",
+  "remote-chat-message",
   // Help bot
   "help:chat:response:chunk",
   "help:chat:response:end",

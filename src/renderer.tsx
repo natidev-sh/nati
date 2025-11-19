@@ -1,4 +1,4 @@
-import { StrictMode, useEffect, useRef } from "react";
+import { StrictMode, Fragment, useEffect, useRef } from "react";
 import { createRoot } from "react-dom/client";
 import { router } from "./router";
 import { RouterProvider } from "@tanstack/react-router";
@@ -55,36 +55,46 @@ const queryClient = new QueryClient({
   }),
 });
 
+// @ts-ignore - Vite injects import.meta.env
+const IS_DEV = import.meta.env.MODE === "development";
+const IS_OPTED_IN = isTelemetryOptedIn();
+
 const posthogClient = posthog.init(
   "phc_3Odqvfcoy4aB6B8dOGRyR3R8VlgACedsXQbPSQ5msS",
   {
     api_host: "https://eu.i.posthog.com",
     // @ts-ignore
-    debug: import.meta.env.MODE === "development",
+    debug: false,
     autocapture: false,
-    capture_exceptions: true,
+    // Explicitly disable extensions that still start with local config
+    // @ts-ignore - not in some versions' type defs
+    enable_heatmaps: false,
+    capture_performance: false,
+    // Avoid error spam in dev/unopted by disabling remote config (/flags) which powers surveys, toolbar, etc.
+    // This prevents CORS fetches to eu-assets.i.posthog.com during local dev.
+    // Ref: https://posthog.com/docs/libraries/js/config#disable-flags-endpoint
+    // @ts-ignore - not yet in older posthog-js type defs
+    advanced_disable_flags: IS_DEV || !IS_OPTED_IN,
+    capture_exceptions: IS_OPTED_IN && !IS_DEV,
     capture_pageview: false,
     before_send: (event) => {
-      if (!isTelemetryOptedIn()) {
-        console.debug("Telemetry not opted in, skipping event");
+      if (!IS_OPTED_IN) {
         return null;
       }
       const telemetryUserId = getTelemetryUserId();
       if (telemetryUserId) {
-        posthogClient.identify(telemetryUserId);
+        posthog.identify(telemetryUserId);
       }
 
       if (event?.properties["$ip"]) {
         event.properties["$ip"] = null;
       }
-
-      console.debug(
-        "Telemetry opted in - UUID:",
-        telemetryUserId,
-        "sending event",
-        event,
-      );
       return event;
+    },
+    loaded: (ph) => {
+      if (!IS_OPTED_IN) {
+        ph.opt_out_capturing();
+      }
     },
     persistence: "localStorage",
   },
@@ -97,16 +107,17 @@ function App() {
   useEffect(() => {
     // Subscribe to navigation state changes
     const unsubscribe = router.subscribe("onResolved", (navigation) => {
-      // Capture the navigation event in PostHog
-      posthog.capture("navigation", {
-        toPath: navigation.toLocation.pathname,
-        fromPath: navigation.fromLocation?.pathname,
-      });
-
-      // Optionally capture as a standard pageview as well
-      posthog.capture("$pageview", {
-        path: navigation.toLocation.pathname,
-      });
+      if (IS_OPTED_IN && !IS_DEV) {
+        // Capture the navigation event in PostHog
+        posthog.capture("navigation", {
+          toPath: navigation.toLocation.pathname,
+          fromPath: navigation.fromLocation?.pathname,
+        });
+        // Optionally capture as a standard pageview as well
+        posthog.capture("$pageview", {
+          path: navigation.toLocation.pathname,
+        });
+      }
     });
 
     // Clean up subscription when component unmounts
@@ -202,6 +213,65 @@ function App() {
     };
   }, []);
 
+  // Listen for navigate-to-chat from remote command (website)
+  useEffect(() => {
+    const handler = (payload: any) => {
+      const chatId = payload?.chatId;
+      const appId = payload?.appId;
+      if (chatId) {
+        router.navigate({ to: "/chat", search: { id: chatId } });
+        if (appId) {
+          // Also set the selected app
+          import("./atoms/appAtoms").then(({ selectedAppIdAtom }) => {
+            import("jotai").then(({ getDefaultStore }) => {
+              getDefaultStore().set(selectedAppIdAtom, appId);
+            });
+          });
+        }
+      }
+    };
+    // @ts-ignore
+    const off = (window as any).electron?.ipcRenderer?.on("navigate-to-chat", handler);
+    return () => {
+      if (typeof off === "function") off();
+      else
+        // @ts-ignore
+        (window as any).electron?.ipcRenderer?.removeAllListeners?.("navigate-to-chat");
+    };
+  }, []);
+
+  // Listen for remote-chat-message from website
+  useEffect(() => {
+    const handler = async (payload: any) => {
+      const { prompt, chatId, model, attachments } = payload;
+      if (prompt && chatId) {
+        // Trigger the chat stream
+        const { useStreamChat } = await import("./hooks/useStreamChat");
+        // We need to get the streamMessage function, but hooks can't be called outside components
+        // Instead, use IPC directly
+        try {
+          await IpcClient.getInstance().startChatStream({
+            prompt,
+            chatId,
+            attachments: attachments || [],
+            redo: false,
+          });
+          toast.success(`Chat started from website: "${prompt.slice(0, 50)}..."`);
+        } catch (error) {
+          showError("Failed to start chat from website: " + error);
+        }
+      }
+    };
+    // @ts-ignore
+    const off = (window as any).electron?.ipcRenderer?.on("remote-chat-message", handler);
+    return () => {
+      if (typeof off === "function") off();
+      else
+        // @ts-ignore
+        (window as any).electron?.ipcRenderer?.removeAllListeners?.("remote-chat-message");
+    };
+  }, []);
+
   useEffect(() => {
     const ipc = IpcClient.getInstance();
     const unsubscribe = ipc.onMcpToolConsentRequest((payload) => {
@@ -224,12 +294,14 @@ function App() {
   );
 }
 
+const RootShell = IS_DEV ? Fragment : StrictMode;
+
 createRoot(document.getElementById("root")!).render(
-  <StrictMode>
+  <RootShell>
     <QueryClientProvider client={queryClient}>
       <PostHogProvider client={posthogClient}>
         <App />
       </PostHogProvider>
     </QueryClientProvider>
-  </StrictMode>,
+  </RootShell>,
 );

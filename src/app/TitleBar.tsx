@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/tooltip";
 import { PreviewHeader } from "@/components/preview_panel/PreviewHeader";
 import { NatiAuthButton } from "@/components/NatiAuthButton";
+import { MdDiamond } from "react-icons/md";
 
 export const TitleBar = () => {
   const [selectedAppId] = useAtom(selectedAppIdAtom);
@@ -61,40 +62,14 @@ export const TitleBar = () => {
     handleDeepLink();
   }, [lastDeepLink]);
 
-  // Get selected app name
-  const selectedApp = apps.find((app) => app.id === selectedAppId);
-  const displayText = selectedApp
-    ? `App: ${selectedApp.name}`
-    : "(no app selected)";
-
-  const handleAppClick = () => {
-    if (selectedApp) {
-      navigate({ to: "/app-details", search: { appId: selectedApp.id } });
-    }
-  };
-
   // Pro button hidden for now
 
   return (
     <>
-      <div className="@container z-11 w-full h-11 bg-(--sidebar) absolute top-0 left-0 app-region-drag flex items-center">
-        <div className="flex items-center gap-1 no-app-region-drag">
+      <div className="@container z-11 w-full h-11 bg-(--sidebar) absolute top-0 left-0 app-region-drag flex items-center px-3">
+        <div className="flex items-center gap-2 no-app-region-drag">
           <img src={logo} alt="Nati Logo" className="w-6 h-6 mr-0.5" />
           <span className="hidden @md:block text-sm font-medium select-none glass-contrast-text opacity-70 hover:opacity-90 transition-colors font-mono tracking-wide">nati.dev</span>
-          <Button
-            data-testid="title-bar-app-name-button"
-            variant="outline"
-            size="sm"
-            className={cn(
-              "ml-1 text-xs max-w-64 truncate font-medium glass-button glass-hover glass-active outline-none focus-visible:ring-2 ring-white/40 dark:ring-white/15",
-              selectedApp && "cursor-pointer",
-            )}
-            key={displayText}
-            onClick={handleAppClick}
-            title={displayText}
-          >
-            <span className="select-none opacity-80">{displayText}</span>
-          </Button>
         </div>
 
         {/* Spacer to push header to the right */}
@@ -102,7 +77,7 @@ export const TitleBar = () => {
 
         {/* Preview Header */}
         {location.pathname === "/chat" && (
-          <div className="flex-1 flex justify-end">
+          <div className="no-app-region-drag mr-3">
             <PreviewHeader />
           </div>
         )}
@@ -110,7 +85,7 @@ export const TitleBar = () => {
         {/* Pro Credits Display */}
         {settings?.natiUser?.isPro && (
           <div className="no-app-region-drag mr-2">
-            <DyadProButton isDyadProEnabled={true} />
+            <NatiProButton isNatiProEnabled={true} />
           </div>
         )}
 
@@ -197,10 +172,10 @@ function WindowsControls() {
   );
 }
 
-export function DyadProButton({
-  isDyadProEnabled,
+export function NatiProButton({
+  isNatiProEnabled,
 }: {
-  isDyadProEnabled: boolean;
+  isNatiProEnabled: boolean;
 }) {
   const { navigate } = useRouter();
   const { userBudget, isLoadingUserBudget } = useUserBudgetInfo();
@@ -209,34 +184,32 @@ export function DyadProButton({
   const hasApiKey = !!settings?.providerSettings?.auto?.apiKey?.value;
   
   return (
-    <Button
-      data-testid="title-bar-dyad-pro-button"
+    <button
+      data-testid="title-bar-nati-pro-button"
       onClick={() => {
         navigate({
           to: providerSettingsRoute.id,
           params: { provider: "auto" },
         });
       }}
-      variant="outline"
-      className={cn(
-        "ml-1 no-app-region-drag h-7 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs px-3 pt-1 pb-1 hover:from-indigo-700 hover:to-purple-700",
-        !isDyadProEnabled && "bg-zinc-600 dark:bg-zinc-600",
-      )}
-      size="sm"
+      className="no-app-region-drag flex items-center gap-1.5 h-8 px-2.5 rounded-md text-xs font-medium bg-white/10 hover:bg-white/20 dark:bg-white/5 dark:hover:bg-white/10 text-foreground/80 hover:text-foreground transition-colors outline-none focus-visible:ring-2 ring-white/40 dark:ring-white/15"
     >
-      {isDyadProEnabled ? "Pro" : "Pro (off)"}
-      {isDyadProEnabled && (
+      <span className="opacity-90 flex items-center gap-1">
+        <MdDiamond className="text-zinc-400" size={14} aria-hidden />
+        Pro
+      </span>
+      {isNatiProEnabled && (
         <>
           {isLoadingUserBudget ? (
-            <span className="text-xs pl-2 opacity-70">...</span>
+            <span className="opacity-50">...</span>
           ) : userBudget && hasApiKey ? (
             <AICreditStatus userBudget={userBudget} />
           ) : !hasApiKey ? (
-            <span className="text-xs pl-2 opacity-70">• Setup</span>
+            <span className="opacity-50">Setup</span>
           ) : null}
         </>
       )}
-    </Button>
+    </button>
   );
 }
 
@@ -250,8 +223,8 @@ export function AICreditStatus({ userBudget }: { userBudget: UserBudgetInfo }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <span className="text-xs pl-2 font-semibold">
-          • {remaining.toLocaleString()}
+        <span className="opacity-70">
+          {remaining.toLocaleString()}
         </span>
       </TooltipTrigger>
       <TooltipContent>

@@ -99,7 +99,7 @@ const DocsPage: React.FC = () => {
           if (!cancelled) setHtml(resp.html || "");
         }
       } catch (e) {
-        if (!cancelled) setHtml(`<div style=\"padding:12px\">Failed to load: ${String((e as any)?.message || e)} </div>`);
+        if (!cancelled) setHtml(`<div style="padding:12px">Failed to load: ${String((e as any)?.message || e)} </div>`);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -117,7 +117,7 @@ const DocsPage: React.FC = () => {
       const m = /^(#{1,6})\s+(.+)$/.exec(line.trim());
       if (m) {
         const level = m[1].length;
-        const raw = m[2].replace(/[#`*_<>{}\[\]]/g, "").trim();
+        const raw = m[2].replace(/[#`*_<>{}[\]]/g, "").trim();
         const id = raw.toLowerCase().replace(/[^a-z0-9\s-]/g, "").replace(/\s+/g, "-");
         hs.push({ id, level, text: raw });
       }

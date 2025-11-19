@@ -26,6 +26,7 @@ import { useLanguageModelProviders } from "@/hooks/useLanguageModelProviders";
 import { useSettings } from "@/hooks/useSettings";
 import { PriceBadge } from "@/components/PriceBadge";
 import { TURBO_MODELS } from "@/ipc/shared/language_model_constants";
+import { Sparkles } from "lucide-react";
 
 export function ModelPicker() {
   const { settings, updateSettings } = useSettings();
@@ -289,29 +290,34 @@ export function ModelPicker() {
                 provider?.id === "auto"
                   ? "Nati Pro"
                   : (provider?.name ?? providerId);
+              const isProviderNew = provider?.id === "google";
               return (
                 <DropdownMenuSub key={providerId}>
                   <DropdownMenuSubTrigger className="w-full font-normal">
-                    <div className="flex flex-col items-start w-full">
-                      <div className="flex items-center gap-2">
-                        <span>{providerDisplayName}</span>
-                        {provider?.type === "cloud" &&
-                          !provider?.secondary &&
-                          isDyadProEnabled(settings) && (
-                            <span className="text-[10px] bg-gradient-to-r from-indigo-600 via-indigo-500 to-indigo-600 bg-[length:200%_100%] animate-[shimmer_5s_ease-in-out_infinite] text-white px-1.5 py-0.5 rounded-full font-medium">
-                              Pro
-                            </span>
-                          )}
-                        {provider?.type === "custom" && (
-                          <span className="text-[10px] bg-amber-500/20 text-amber-700 px-1.5 py-0.5 rounded-full font-medium">
-                            Custom
+                    <div className="flex items-center gap-2">
+                      <span>{providerDisplayName}</span>
+                      {provider?.type === "cloud" &&
+                        !provider?.secondary &&
+                        isDyadProEnabled(settings) && (
+                          <span className="text-[10px] bg-gradient-to-r from-indigo-600 via-indigo-500 to-indigo-600 bg-[length:200%_100%] animate-[shimmer_5s_ease-in-out_infinite] text-white px-1.5 py-0.5 rounded-full font-medium">
+                            Pro
                           </span>
                         )}
-                      </div>
-                      <span className="text-xs text-muted-foreground">
-                        {models.length} models
-                      </span>
+                      {provider?.type === "custom" && (
+                        <span className="text-[10px] bg-amber-500/20 text-amber-700 px-1.5 py-0.5 rounded-full font-medium">
+                          Custom
+                        </span>
+                      )}
+                      {!provider?.secondary && isProviderNew && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-sky-500/15 text-sky-600 dark:text-sky-300">
+                          <Sparkles className="h-3 w-3" />
+                          NEW
+                        </span>
+                      )}
                     </div>
+                    <span className="text-xs text-muted-foreground">
+                      {models.length} models
+                    </span>
                   </DropdownMenuSubTrigger>
                   <DropdownMenuSubContent className="w-56 max-h-100 overflow-y-auto">
                     <DropdownMenuLabel>
